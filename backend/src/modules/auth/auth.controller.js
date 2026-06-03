@@ -42,7 +42,7 @@ async function setupAdmin(req, res) {
     try {
         // check if user exists
         const row = await db.getAsync('SELECT COUNT(*) as count FROM users');
-        
+
         if (row.count > 0) {
             return res.status(403).json({ message: 'Le système a déjà été initialisé. Un compte existe déjà.' });
         }
@@ -59,9 +59,9 @@ async function setupAdmin(req, res) {
 
         // hash & create admin
         const hashedPassword = await bcrypt.hash(password, 10);
-        
+
         await db.runAsync('INSERT INTO users (email, password) VALUES (?, ?)', [email, hashedPassword]);
-        
+
         return res.status(201).json({ message: 'Compte administrateur créé avec succès.' });
 
     } catch (error) {

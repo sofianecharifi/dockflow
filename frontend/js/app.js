@@ -1,1 +1,1 @@
-// Logique globale(vérification de session, déconnexion)
+// global logic

@@ -1,12 +1,12 @@
 // check auth
 const token = localStorage.getItem('dockflow_token');
 
-// pas de token -> redirect
+// redirect if no token
 if (!token) {
     window.location.href = '/login.html';
 }
 
-// Gestion de la déconnexion
+// handle logout
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
@@ -32,7 +32,7 @@ function renderContainersGrid(containers) {
 
 let socket;
 
-// Initialisation de la connexion WebSockets
+// init websockets
 function initWebSockets() {
     if (socket) return;
 
@@ -70,29 +70,29 @@ function initWebSockets() {
             const logsStream = document.getElementById('logs-stream');
 
             if (logsStream) {
-                // Si data est une simple chaîne (erreur système), on la formate
+                // format string data
                 const text = typeof data === 'string' ? data : data.text;
                 const type = typeof data === 'string' ? 'stderr' : data.type;
 
                 const span = document.createElement('span');
                 span.textContent = text;
 
-                // Coloration en fonction du type de log
+                // color logs by type
                 if (type === 'stderr') {
                     span.classList.add('text-red-400');
                 } else {
-                    span.classList.add('text-slate-200'); // Texte normal
+                    span.classList.add('text-slate-200'); // normal text
                 }
 
                 logsStream.appendChild(span);
 
-                // Limitation du buffer de logs pour prévenir la surcharge mémoire du navigateur
-                // On limite le nombre d'éléments enfants (environ 500)
+                // prevent memory leak
+                // limit to 500 logs
                 while (logsStream.childNodes.length > 500) {
                     logsStream.removeChild(logsStream.firstChild);
                 }
 
-                // Défilement automatique vers le dernier log reçu
+                // auto scroll
                 const scrollContainer = logsStream.parentElement;
                 scrollContainer.scrollTop = scrollContainer.scrollHeight;
             }
@@ -102,15 +102,15 @@ function initWebSockets() {
     }
 }
 
-// Importation des services API
+// imports
 import { getContainers, actionContainer } from '../api/containers.api.js';
 import { openLogsModal, initLogsModalEvents } from '../components/modal.js';
 
-// Gestion des événements d'action sur les conteneurs
+// container actions
 const gridContainer = document.getElementById('containers-grid');
 if (gridContainer) {
     gridContainer.addEventListener('click', async (event) => {
-        // Vérification du bouton cliqué
+        // get clicked button
         const button = event.target.closest('button[data-action]');
         if (!button) return;
 
@@ -119,18 +119,18 @@ if (gridContainer) {
 
         if (!action || !id) return;
 
-        // Gestion de l'affichage de la modale des logs
+        // show logs modal
         if (action === 'logs') {
             openLogsModal(id, socket);
             return;
         }
 
         try {
-            // Appel à l'API pour exécuter l'action
+            // call api
             button.disabled = true;
             await actionContainer(id, action);
 
-            // Rafraîchissement global de la page
+            // refresh dashboard
             await initializeDashboard();
         } catch (error) {
             console.error(`Erreur lors de l'action ${action}:`, error);
@@ -140,13 +140,13 @@ if (gridContainer) {
     });
 }
 
-// Initialisation des événements pour la modale de logs
+// init modal events
 initLogsModalEvents(() => socket);
 
 
 async function initializeDashboard() {
     try {
-        // setup ws et fetch data
+        // setup ws & fetch data
         initWebSockets();
         const containers = await getContainers();
         renderContainersGrid(containers);
@@ -156,5 +156,5 @@ async function initializeDashboard() {
     }
 }
 
-// Initialisation du tableau de bord au chargement de la page
+// init dashboard on load
 initializeDashboard();

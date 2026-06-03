@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { listContainers, startContainer, stopContainer, restartContainer, removeContainer, pullAndRecreateContainer } = require('./containers.controller');
+const { listContainers, startContainer, stopContainer, restartContainer, removeContainer, pullAndRecreateContainer, downloadContainerLogs } = require('./containers.controller');
 const requireAuth = require('../../middlewares/requireAuth');
 
 // list all containers
@@ -19,5 +19,7 @@ router.post('/:id/stop', requireAuth, stopContainer);
 router.post('/:id/restart', requireAuth, restartContainer);
 router.post('/:id/pull', requireAuth, pullAndRecreateContainer);
 router.delete('/:id', requireAuth, removeContainer);
+
+router.get('/:id/logs/download', requireAuth, downloadContainerLogs);
 
 module.exports = router;

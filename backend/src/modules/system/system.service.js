@@ -10,7 +10,7 @@ async function getSystemStats() {
     try {
         const cpuResult = await osUtils.cpu.usage();
         const memResult = await osUtils.memory.info();
-        
+
         let diskPercentage = 0;
         try {
             const fs = require('fs');

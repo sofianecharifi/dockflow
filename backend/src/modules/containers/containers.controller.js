@@ -119,11 +119,73 @@ async function pullAndRecreateContainer(req, res) {
     }
 }
 
+async function downloadContainerLogs(req, res) {
+    let logStream;
+    try {
+        const id = req.params.id;
+
+        // On utilise directement le modem pour forcer le retour sous forme de Stream,
+        // car container.logs() de dockerode bufferise par défaut si follow=false.
+        const optsf = {
+            path: '/containers/' + id + '/logs?stdout=1&stderr=1&timestamps=1&follow=0',
+            method: 'GET',
+            isStream: true,
+            statusCodes: {
+                200: true,
+                404: 'no such container',
+                500: 'server error'
+            }
+        };
+
+        docker.modem.dial(optsf, (err, stream) => {
+            if (err) {
+                console.error("Erreur lors de la récupération du stream:", err);
+                if (!res.headersSent) {
+                    return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: err.message });
+                }
+                return;
+            }
+
+            logStream = stream;
+
+            res.setHeader('Content-Type', 'text/plain');
+            res.setHeader('Content-Disposition', `attachment; filename="container-${id}-logs.txt"`);
+
+            // Démultiplexage des flux (stdout et stderr) pour retirer les headers de 8 octets ajoutés par Docker (quand tty: false)
+            // afin d'obtenir un fichier texte propre et lisible.
+            docker.modem.demuxStream(logStream, res, res);
+
+            // Important : demuxStream ne ferme pas la réponse HTTP automatiquement à la fin du flux.
+            logStream.on('end', () => {
+                res.end();
+            });
+
+            // Nettoyage : on détruit le stream Docker si la connexion HTTP est fermée prématurément par le client,
+            // ce qui évite une fuite de mémoire ou un stream fantôme côté serveur.
+            req.on('close', () => {
+                if (logStream && !logStream.destroyed) {
+                    logStream.destroy();
+                }
+            });
+        });
+
+    } catch (error) {
+        if (logStream && !logStream.destroyed) {
+            logStream.destroy();
+        }
+        console.error("Erreur downloadContainerLogs:", error);
+        if (!res.headersSent) {
+            return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: error.message });
+        }
+    }
+}
+
 module.exports = {
     listContainers,
     startContainer,
     stopContainer,
     restartContainer,
     removeContainer,
-    pullAndRecreateContainer
+    pullAndRecreateContainer,
+    downloadContainerLogs
 };
