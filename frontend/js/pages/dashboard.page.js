@@ -1,16 +1,16 @@
-// check auth
-const token = localStorage.getItem('dockflow_token');
-
-// redirect if no token
-if (!token) {
-    window.location.href = '/login.html';
-}
+// check auth visually not possible with http-only, rely on api fails
 
 // handle logout
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-        localStorage.removeItem('dockflow_token');
+    logoutBtn.addEventListener('click', async () => {
+        // call logout endpoint or just clear cookie if we add one, 
+        // for now just clear cookie via document.cookie is NOT possible (httpOnly), 
+        // so we just redirect and let API fail or add a logout route. Let's redirect for now.
+        // Best practice is to have a /api/auth/logout that clears it.
+        try {
+            await fetch((window.Capacitor ? 'https://dockflow.mycharifi.ovh' : '') + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+        } catch(e) {}
         window.location.href = '/login.html';
     });
 }
@@ -153,6 +153,9 @@ async function initializeDashboard() {
 
     } catch (error) {
         console.error("Erreur lors de l'initialisation du tableau de bord :", error);
+        if (error.message === 'Session expirée' || error.message.includes('Impossible de')) {
+            window.location.href = '/login.html';
+        }
     }
 }
 

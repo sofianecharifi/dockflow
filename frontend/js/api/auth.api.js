@@ -6,6 +6,7 @@ export async function loginRequest(email, password) {
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
     });
 
@@ -20,7 +21,7 @@ export async function loginRequest(email, password) {
 }
 
 export async function checkSetupStatusRequest() {
-    const response = await fetch(`${API_BASE}/api/auth/setup/status`);
+    const response = await fetch(`${API_BASE}/api/auth/setup/status`, { credentials: 'include' });
     const data = await response.json();
     if (!response.ok) {
         throw new Error(data.message || "Erreur de vérification du statut");
@@ -34,6 +35,7 @@ export async function setupAdminRequest(email, password) {
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password })
     });
 

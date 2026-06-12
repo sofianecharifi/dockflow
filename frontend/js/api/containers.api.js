@@ -1,15 +1,9 @@
 const API_BASE = window.Capacitor ? 'https://dockflow.mycharifi.ovh' : '';
 
 export async function getContainers() {
-
-    const token = localStorage.getItem('dockflow_token');
-
-
     const response = await fetch(`${API_BASE}/api/containers`, {
         method: 'GET',
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
     });
 
 
@@ -28,19 +22,14 @@ export async function getContainers() {
 }
 
 export async function actionContainer(id, action) {
-    const token = localStorage.getItem('dockflow_token');
-    
     // map action to method
     const method = action === 'remove' ? 'DELETE' : 'POST';
     
-
     const url = action === 'remove' ? `${API_BASE}/api/containers/${id}` : `${API_BASE}/api/containers/${id}/${action}`;
 
     const response = await fetch(url, {
         method: method,
-        headers: {
-            'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include'
     });
 
     if (!response.ok) {

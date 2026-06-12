@@ -8,6 +8,7 @@ const docker = require("./src/config/docker");
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -88,8 +89,9 @@ io.on('connection', (socket) => {
 });
 
 // body parser
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 // auth
 app.use('/api/auth', authRoutes);

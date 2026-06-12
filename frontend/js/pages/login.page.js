@@ -42,11 +42,8 @@ form.addEventListener('submit', async (e) => {
 
     try {
         // login
-        const data = await loginRequest(email, password);
+        await loginRequest(email, password);
         
-        // save token
-        localStorage.setItem('dockflow_token', data.token);
-
         emailInput.blur();
         passwordInput.blur();
         

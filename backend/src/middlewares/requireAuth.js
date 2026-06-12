@@ -2,15 +2,11 @@ const jwt = require('jsonwebtoken');
 
 const requireAuth = (req, res, next) => {
 
-    const authHeader = req.headers.authorization;
+    const token = req.cookies.dockflow_token;
 
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!token) {
         return res.status(401).json({ message: 'Non Autorisé' });
     }
-
-
-    const token = authHeader.split(' ')[1];
 
     try {
         // verify token

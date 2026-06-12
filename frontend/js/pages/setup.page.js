@@ -3,6 +3,7 @@ import { setupAdminRequest } from '../api/auth.api.js';
 const form = document.querySelector('form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
+const passwordConfirmInput = document.getElementById('password_confirm');
 
 // error/success banner
 let messageDiv = document.getElementById('message-div');
@@ -23,6 +24,14 @@ form.addEventListener('submit', async (e) => {
 
     const email = emailInput.value;
     const password = passwordInput.value;
+    const passwordConfirm = passwordConfirmInput.value;
+
+    if (password !== passwordConfirm) {
+        messageDiv.textContent = "Les mots de passe ne correspondent pas.";
+        messageDiv.classList.add('bg-red-500/10', 'text-red-500');
+        messageDiv.classList.remove('hidden');
+        return;
+    }
 
     if (password.length < 8) {
         messageDiv.textContent = "Le mot de passe doit contenir au moins 8 caractères.";

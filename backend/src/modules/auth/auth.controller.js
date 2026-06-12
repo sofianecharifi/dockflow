@@ -42,7 +42,14 @@ async function loginUser(req, res) {
             { expiresIn: '24h' }
         );
 
-        return res.json({ token });
+        res.cookie('dockflow_token', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: 24 * 60 * 60 * 1000
+        });
+
+        return res.json({ message: 'Connecté' });
     } catch (error) {
         console.error('Erreur lors du login:', error);
         return res.status(500).json({ message: 'Erreur interne du serveur' });
@@ -81,4 +88,13 @@ async function setupAdmin(req, res) {
     }
 }
 
-module.exports = { loginUser, setupAdmin, checkSetupStatus };
+async function logoutUser(req, res) {
+    res.clearCookie('dockflow_token', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+    });
+    return res.json({ message: 'Déconnecté' });
+}
+
+module.exports = { loginUser, setupAdmin, checkSetupStatus, logoutUser };
