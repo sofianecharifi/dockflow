@@ -4,6 +4,17 @@ const db = require('../../config/database');
 
 
 
+async function checkSetupStatus(req, res) {
+    try {
+        const row = await db.getAsync('SELECT COUNT(*) as count FROM users');
+        // If count is 0, setup is required
+        return res.json({ setupRequired: row.count === 0 });
+    } catch (error) {
+        console.error('Erreur lors de la vérification du setup:', error);
+        return res.status(500).json({ message: 'Erreur interne du serveur' });
+    }
+}
+
 async function loginUser(req, res) {
     try {
         const { email, password } = req.body || {};
@@ -70,4 +81,4 @@ async function setupAdmin(req, res) {
     }
 }
 
-module.exports = { loginUser, setupAdmin };
+module.exports = { loginUser, setupAdmin, checkSetupStatus };

@@ -1,4 +1,17 @@
-import { loginRequest } from '../api/auth.api.js';
+import { loginRequest, checkSetupStatusRequest } from '../api/auth.api.js';
+
+// Check if setup is required before showing login
+async function checkSetup() {
+    try {
+        const { setupRequired } = await checkSetupStatusRequest();
+        if (setupRequired) {
+            window.location.href = '/setup.html';
+        }
+    } catch (error) {
+        console.error("Erreur lors de la vérification de l'installation:", error);
+    }
+}
+checkSetup();
 
 
 const form = document.querySelector('form');
