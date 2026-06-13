@@ -7,6 +7,9 @@ const requireAuth = require('../../middlewares/requireAuth');
 router.get('/', requireAuth, async (req, res) => {
     try {
         const containers = await listContainers();
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.json(containers);
     } catch (error) {
         res.status(500).json({ error: "Erreur serveur" });
