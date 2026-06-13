@@ -42,10 +42,11 @@ async function loginUser(req, res) {
             { expiresIn: '24h' }
         );
 
+        const isProd = process.env.NODE_ENV === 'production';
         res.cookie('dockflow_token', token, {
             httpOnly: true,
-            secure: true,
-            sameSite: 'none',
+            secure: isProd,
+            sameSite: isProd ? 'none' : 'lax',
             maxAge: 24 * 60 * 60 * 1000
         });
 
@@ -89,10 +90,11 @@ async function setupAdmin(req, res) {
 }
 
 async function logoutUser(req, res) {
+    const isProd = process.env.NODE_ENV === 'production';
     res.clearCookie('dockflow_token', {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none'
+        secure: isProd,
+        sameSite: isProd ? 'none' : 'lax'
     });
     return res.json({ message: 'Déconnecté' });
 }

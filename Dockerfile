@@ -24,6 +24,9 @@ COPY backend/src ./backend/src
 COPY backend/app.js ./backend/app.js
 COPY frontend ./frontend
 
+# Set environment to production
+ENV NODE_ENV=production
+
 # Expose port
 EXPOSE 3000
 
