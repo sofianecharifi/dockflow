@@ -44,8 +44,8 @@ async function loginUser(req, res) {
 
         res.cookie('dockflow_token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'lax',
+            secure: true,
+            sameSite: 'none',
             maxAge: 24 * 60 * 60 * 1000
         });
 
@@ -91,8 +91,8 @@ async function setupAdmin(req, res) {
 async function logoutUser(req, res) {
     res.clearCookie('dockflow_token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax'
+        secure: true,
+        sameSite: 'none'
     });
     return res.json({ message: 'Déconnecté' });
 }
