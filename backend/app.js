@@ -49,7 +49,8 @@ io.on('connection', (socket) => {
         }
 
         try {
-            const container = docker.getContainer(id);
+            const cleanId = id.trim();
+            const container = docker.getContainer(cleanId);
             logStream = await container.logs({ stdout: true, stderr: true, follow: true, tail: 100 });
             
             // bypass headers and split streams

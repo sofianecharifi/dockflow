@@ -122,7 +122,7 @@ async function pullAndRecreateContainer(req, res) {
 async function downloadContainerLogs(req, res) {
     let logStream;
     try {
-        const id = req.params.id;
+        const id = req.params.id.trim();
 
         // On utilise directement le modem pour forcer le retour sous forme de Stream,
         // car container.logs() de dockerode bufferise par défaut si follow=false.
