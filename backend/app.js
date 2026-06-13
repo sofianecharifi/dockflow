@@ -9,6 +9,7 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
+const morgan = require("morgan");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -87,6 +88,9 @@ io.on('connection', (socket) => {
         }
     });
 });
+
+// logger
+app.use(morgan("dev"));
 
 // body parser
 app.use(cors({ origin: true, credentials: true }));
