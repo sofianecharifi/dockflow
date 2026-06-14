@@ -18,6 +18,26 @@ const form = document.querySelector('form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 
+// Toggle password visibility
+const togglePasswordBtn = document.getElementById('toggle-password');
+if (togglePasswordBtn) {
+    togglePasswordBtn.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        
+        const eyeIcon = togglePasswordBtn.querySelector('#eye-icon');
+        const eyeOffIcon = togglePasswordBtn.querySelector('#eye-off-icon');
+        
+        if (type === 'text') {
+            eyeIcon.classList.add('hidden');
+            eyeOffIcon.classList.remove('hidden');
+        } else {
+            eyeIcon.classList.remove('hidden');
+            eyeOffIcon.classList.add('hidden');
+        }
+    });
+}
+
 // error banner
 let errorDiv = document.getElementById('error-message');
 if (!errorDiv) {

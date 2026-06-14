@@ -5,6 +5,32 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const passwordConfirmInput = document.getElementById('password_confirm');
 
+// Toggle password visibility helper
+function setupPasswordToggle(inputId, toggleBtnId) {
+    const input = document.getElementById(inputId);
+    const btn = document.getElementById(toggleBtnId);
+    if (input && btn) {
+        btn.addEventListener('click', () => {
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            
+            const eyeIcon = btn.querySelector('.eye-icon');
+            const eyeOffIcon = btn.querySelector('.eye-off-icon');
+            
+            if (type === 'text') {
+                eyeIcon.classList.add('hidden');
+                eyeOffIcon.classList.remove('hidden');
+            } else {
+                eyeIcon.classList.remove('hidden');
+                eyeOffIcon.classList.add('hidden');
+            }
+        });
+    }
+}
+
+setupPasswordToggle('password', 'toggle-password');
+setupPasswordToggle('password_confirm', 'toggle-password-confirm');
+
 // error/success banner
 let messageDiv = document.getElementById('message-div');
 if (!messageDiv) {
