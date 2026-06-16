@@ -15,8 +15,8 @@ async function getSystemStats() {
         try {
             const fs = require('fs');
             const path = require('path');
-            // On vérifie si on a monté le disque de l'hôte dans /hostfs, sinon on prend la racine du conteneur
-            const checkPath = fs.existsSync('/hostfs') ? '/hostfs' : path.parse(process.cwd()).root;
+            // check host disk space securely via the mounted db volume
+            const checkPath = fs.existsSync('/app/backend/db') ? '/app/backend/db' : path.parse(process.cwd()).root;
             const stats = await fs.promises.statfs(checkPath);
             const used = stats.blocks - stats.bfree;
             const totalForNonRoot = used + stats.bavail;

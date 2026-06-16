@@ -9,10 +9,6 @@ services:
     env_file:
       - ./backend/.env
     volumes:
-      # Permet à l'application de communiquer avec le Docker de la machine hôte
       - /var/run/docker.sock:/var/run/docker.sock
-      # Permet au conteneur de lire l'espace disque réel du serveur hôte
-      - /:/hostfs:ro
-      # Sauvegarde la base de données SQLite pour ne pas perdre les données quand le conteneur s'arrête
       - ./backend/db:/app/backend/db
     restart: unless-stopped

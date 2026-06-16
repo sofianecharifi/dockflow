@@ -7,16 +7,17 @@ const authRoutes = require("./src/modules/auth/auth.routes");
 const docker = require("./src/config/docker");
 const express = require("express");
 const path = require("path");
-const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
+const jwt = require("jsonwebtoken");
+const cookie = require("cookie");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // init http & ws
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server);
 
 // broadcast stats loop
 const broadcastStats = async () => {
@@ -35,6 +36,21 @@ const broadcastStats = async () => {
 
 // start loop
 broadcastStats();
+
+// ws auth middleware
+io.use((socket, next) => {
+    try {
+        const cookies = cookie.parse(socket.request.headers.cookie || '');
+        const token = cookies.dockflow_token;
+        if (!token) {
+            return next(new Error('Authentication error'));
+        }
+        jwt.verify(token, process.env.JWT_SECRET);
+        next();
+    } catch (err) {
+        next(new Error('Authentication error'));
+    }
+});
 
 // ws handlers
 io.on('connection', (socket) => {
@@ -94,7 +110,6 @@ io.on('connection', (socket) => {
 app.use(morgan("dev"));
 
 // body parser
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 

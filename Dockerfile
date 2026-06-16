@@ -30,6 +30,6 @@ ENV NODE_ENV=production
 # Expose port
 EXPOSE 3000
 
-# Start application
+# Start application without npm wrapper to save memory
 WORKDIR /app/backend
-CMD ["npm", "start"]
+CMD ["node", "app.js"]
