@@ -79,7 +79,7 @@ form.addEventListener('submit', async (e) => {
         
         // redirect to login after short delay
         setTimeout(() => {
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }, 1500);
         
     } catch (error) {

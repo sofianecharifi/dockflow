@@ -5,7 +5,7 @@ async function checkSetup() {
     try {
         const { setupRequired } = await checkSetupStatusRequest();
         if (setupRequired) {
-            window.location.href = '/setup.html';
+            window.location.href = 'setup.html';
         }
     } catch (error) {
         console.error("Erreur lors de la vérification de l'installation:", error);
@@ -68,7 +68,7 @@ form.addEventListener('submit', async (e) => {
         passwordInput.blur();
         
         // redirect
-        window.location.href = '/index.html';
+        window.location.href = 'index.html';
         
     } catch (error) {
         // catch err

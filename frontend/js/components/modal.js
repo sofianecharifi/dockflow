@@ -47,7 +47,8 @@ export function initLogsModalEvents(getSocket) {
             const containerId = downloadLogsBtn.dataset.id;
             if (!containerId) return;
 
-            const API_BASE = window.Capacitor ? 'https://dockflow.mycharifi.ovh' : '';
+            const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
+            const API_BASE = isApp ? 'https://dockflow.mycharifi.ovh' : '';
             const url = `${API_BASE}/api/containers/${containerId}/logs/download`;
             const token = localStorage.getItem('dockflow_token');
 

@@ -9,9 +9,10 @@ if (logoutBtn) {
         // so we just redirect and let API fail or add a logout route. Let's redirect for now.
         // Best practice is to have a /api/auth/logout that clears it.
         try {
-            await fetch((window.Capacitor ? 'https://dockflow.mycharifi.ovh' : '') + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+            const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
+            await fetch((isApp ? 'https://dockflow.mycharifi.ovh' : '') + '/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch(e) {}
-        window.location.href = '/login.html';
+        window.location.href = 'login.html';
     });
 }
 
@@ -37,7 +38,8 @@ function initWebSockets() {
     if (socket) return;
 
     if (typeof io !== 'undefined') {
-        const API_BASE = window.Capacitor ? 'https://dockflow.mycharifi.ovh' : '';
+        const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
+        const API_BASE = isApp ? 'https://dockflow.mycharifi.ovh' : '';
         socket = io(API_BASE || undefined); 
 
         socket.on('system-stats', (stats) => {
@@ -154,7 +156,7 @@ async function initializeDashboard() {
     } catch (error) {
         console.error("Erreur lors de l'initialisation du tableau de bord :", error);
         if (error.message === 'Session expirée' || error.message.includes('Impossible de')) {
-            window.location.href = '/login.html';
+            window.location.href = 'login.html';
         }
     }
 }
