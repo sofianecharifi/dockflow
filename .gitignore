@@ -10,6 +10,8 @@ database.db
 # --- IDE & Build Mobile ---
 .idea/
 frontend/www/
+frontend/dist/
+dist/
 *.apk
 *.aab
 *.ipa

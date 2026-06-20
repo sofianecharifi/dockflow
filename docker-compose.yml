@@ -6,8 +6,6 @@ services:
     container_name: dockflow_app
     ports:
       - "3000:3000"
-    env_file:
-      - ./backend/.env
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./backend/db:/app/backend/db
