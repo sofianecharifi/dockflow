@@ -11,8 +11,10 @@ const cookieParser = require("cookie-parser");
 const morgan = require("morgan");
 const jwt = require("jsonwebtoken");
 const cookie = require("cookie");
+const cors = require("cors");
 
 const app = express();
+app.use(cors({ origin: true, credentials: true }));
 const port = process.env.PORT || 3000;
 
 // init http & ws
@@ -55,14 +57,28 @@ io.use((socket, next) => {
 // ws handlers
 io.on('connection', (socket) => {
     let logStream = null;
+    let stdoutPass = null;
+    let stderrPass = null;
 
-    // setup logs
-
-    socket.on('request-logs', async (id) => {
+    const cleanupLogs = () => {
         if (logStream) {
             logStream.destroy();
             logStream = null;
         }
+        if (stdoutPass) {
+            stdoutPass.destroy();
+            stdoutPass = null;
+        }
+        if (stderrPass) {
+            stderrPass.destroy();
+            stderrPass = null;
+        }
+    };
+
+    // setup logs
+
+    socket.on('request-logs', async (id) => {
+        cleanupLogs();
 
         try {
             const cleanId = id.trim();
@@ -71,8 +87,8 @@ io.on('connection', (socket) => {
             
             // bypass headers and split streams
             const { PassThrough } = require('stream');
-            const stdoutPass = new PassThrough();
-            const stderrPass = new PassThrough();
+            stdoutPass = new PassThrough();
+            stderrPass = new PassThrough();
 
             stdoutPass.on('data', (chunk) => {
                 socket.emit('container-logs', { type: 'stdout', text: chunk.toString('utf8') });
@@ -92,17 +108,11 @@ io.on('connection', (socket) => {
     });
 
     socket.on('stop-logs', () => {
-        if (logStream) {
-            logStream.destroy();
-            logStream = null;
-        }
+        cleanupLogs();
     });
 
     socket.on('disconnect', () => {
-        if (logStream) {
-            logStream.destroy();
-            logStream = null;
-        }
+        cleanupLogs();
     });
 });
 
@@ -127,6 +137,9 @@ app.use('/api/containers', containersRoutes);
 
 
 // boot
-server.listen(port, '0.0.0.0', () => {
-    console.log(`DockFlow listening on port http://localhost:${port}`);
+const db = require('./src/config/database');
+db.initDb().then(() => {
+    server.listen(port, '0.0.0.0', () => {
+        console.log(`DockFlow listening on port http://localhost:${port}`);
+    });
 });

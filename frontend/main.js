@@ -6,8 +6,8 @@ function createWindow() {
     width: 1024,
     height: 768,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false // Requis selon les dépendances ou API utilisées dans votre code front (Capacitor/fetch)
+      nodeIntegration: false,
+      contextIsolation: true
     }
   });
 

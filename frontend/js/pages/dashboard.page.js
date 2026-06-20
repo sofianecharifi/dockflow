@@ -4,15 +4,15 @@
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
-        // call logout endpoint or just clear cookie if we add one, 
-        // for now just clear cookie via document.cookie is NOT possible (httpOnly), 
-        // so we just redirect and let API fail or add a logout route. Let's redirect for now.
-        // Best practice is to have a /api/auth/logout that clears it.
         try {
             const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-            await fetch((isApp ? 'https://dockflow.mycharifi.ovh' : '') + '/api/auth/logout', { method: 'POST', credentials: 'include' });
-        } catch(e) {}
-        window.location.href = 'login.html';
+            let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
+            await fetch(API_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+        } catch(e) {
+            console.error('Logout error', e);
+        } finally {
+            window.location.href = 'login.html';
+        }
     });
 }
 
@@ -39,32 +39,34 @@ function initWebSockets() {
 
     if (typeof io !== 'undefined') {
         const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-        const API_BASE = isApp ? 'https://dockflow.mycharifi.ovh' : '';
-        socket = io(API_BASE || undefined); 
+        let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
+        socket = io(API_BASE || undefined, {
+            withCredentials: true
+        }); 
 
         socket.on('system-stats', (stats) => {
             // CPU
             const cpuGauge = document.getElementById('cpu-gauge');
             const cpuText = document.getElementById('cpu-text');
             if (cpuGauge && cpuText && stats.cpu !== undefined) {
-                cpuGauge.style.width = `${stats.cpu}%`;
-                cpuText.textContent = `${stats.cpu}%`;
+                cpuGauge.style.width = stats.cpu !== null ? `${stats.cpu}%` : '0%';
+                cpuText.textContent = stats.cpu !== null ? `${stats.cpu}%` : 'N/A';
             }
 
             // RAM
             const ramGauge = document.getElementById('ram-gauge');
             const ramText = document.getElementById('ram-text');
             if (ramGauge && ramText && stats.ram !== undefined) {
-                ramGauge.style.width = `${stats.ram}%`;
-                ramText.textContent = `${stats.ram}%`;
+                ramGauge.style.width = stats.ram !== null ? `${stats.ram}%` : '0%';
+                ramText.textContent = stats.ram !== null ? `${stats.ram}%` : 'N/A';
             }
 
             // DISK
             const diskGauge = document.getElementById('disk-gauge');
             const diskText = document.getElementById('disk-text');
             if (diskGauge && diskText && stats.disk !== undefined) {
-                diskGauge.style.width = `${stats.disk}%`;
-                diskText.textContent = `${stats.disk}%`;
+                diskGauge.style.width = stats.disk !== null ? `${stats.disk}%` : '0%';
+                diskText.textContent = stats.disk !== null ? `${stats.disk}%` : 'N/A';
             }
         });
 

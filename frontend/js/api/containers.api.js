@@ -1,5 +1,11 @@
 const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-const API_BASE = isApp ? 'https://dockflow.mycharifi.ovh' : '';
+let API_BASE = '';
+if (isApp) {
+    API_BASE = localStorage.getItem('dockflow_api_url');
+    if (!API_BASE && !window.location.href.includes('server.html')) {
+        window.location.href = 'server.html';
+    }
+}
 
 export async function getContainers() {
     const response = await fetch(`${API_BASE}/api/containers`, {

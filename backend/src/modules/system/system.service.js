@@ -1,53 +1,58 @@
 const { createOSUtils } = require('node-os-utils');
+
+// Initialize OS utilities with a 500ms sampling interval and cache TTL 
+// to ensure fresh metrics without overloading the host CPU.
 const osUtils = createOSUtils({
     cpu: {
-        samplingInterval: 500, // cpu interval (ms)
-        cacheTTL: 500          // cache ttl (ms)
+        samplingInterval: 500,
+        cacheTTL: 500
     }
 });
 
+/**
+ * Retrieves the current system metrics including CPU, Memory, and Disk usage.
+ * In case a specific metric fails to load, it falls back to null so the client UI 
+ * can properly represent the unavailable state instead of falsely reporting 0%.
+ * 
+ * @returns {Promise<{cpu: number|null, ram: number|null, disk: number|null}>}
+ */
 async function getSystemStats() {
+    let cpuPercentage = null;
+    let ramPercentage = null;
+    let diskPercentage = null;
+
     try {
         const cpuResult = await osUtils.cpu.usage();
+        if (cpuResult && cpuResult.success) {
+            cpuPercentage = Math.round(cpuResult.data);
+        }
+
         const memResult = await osUtils.memory.info();
+        if (memResult && memResult.success && memResult.data) {
+            ramPercentage = Math.round(memResult.data.usagePercentage || 0);
+        }
 
-        let diskPercentage = 0;
         try {
-            const fs = require('fs');
-            const path = require('path');
-            // check host disk space securely via the mounted db volume
-            const checkPath = fs.existsSync('/app/backend/db') ? '/app/backend/db' : path.parse(process.cwd()).root;
-            const stats = await fs.promises.statfs(checkPath);
-            const used = stats.blocks - stats.bfree;
-            const totalForNonRoot = used + stats.bavail;
-            diskPercentage = (used / totalForNonRoot) * 100;
-            if (isNaN(diskPercentage)) diskPercentage = 0;
+            // Retrieve root OS drive statistics using cross-platform node-os-utils
+            const driveInfo = await osUtils.disk.overallUsage();
+            if (driveInfo && driveInfo.success) {
+                diskPercentage = Math.round(parseFloat(driveInfo.data));
+            }
+            if (isNaN(diskPercentage)) {
+                diskPercentage = null;
+            }
         } catch (e) {
-            console.error("Erreur stats disque:", e);
+            console.error("Failed to retrieve disk statistics:", e);
         }
 
-        let cpuPercentage = 0;
-        let ramPercentage = 0;
-        if (cpuResult.success) {
-            cpuPercentage = cpuResult.data;
-        }
-
-        if (memResult.success && memResult.data) {
-            ramPercentage = memResult.data.usagePercentage || 0;
-        }
-
-
-
-        // format for frontend
         return {
-            cpu: Math.round(cpuPercentage),
-            ram: Math.round(ramPercentage),
-            disk: Math.round(diskPercentage)
+            cpu: cpuPercentage,
+            ram: ramPercentage,
+            disk: diskPercentage
         };
     } catch (error) {
-        console.error("Erreur lors de la récupération des statistiques système :", error);
-        // fallback values
-        return { cpu: 0, ram: 0, disk: 0 };
+        console.error("Failed to retrieve system statistics:", error);
+        return { cpu: null, ram: null, disk: null };
     }
 }
 

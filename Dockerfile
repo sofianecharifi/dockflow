@@ -9,8 +9,8 @@ RUN apk add --no-cache python3 make g++
 COPY backend/package*.json ./backend/
 
 WORKDIR /app/backend
-# Install production dependencies and build sqlite3 from source
-RUN npm install --omit=dev --build-from-source=sqlite3
+# Install production dependencies
+RUN npm install --omit=dev
 
 # --- Final Image ---
 FROM node:20-alpine

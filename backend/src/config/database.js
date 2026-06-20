@@ -1,7 +1,5 @@
-const sqlite3 = require('sqlite3').verbose();
-const bcrypt = require('bcrypt');
+const Database = require('better-sqlite3');
 const path = require('path');
-
 const fs = require('fs');
 
 const dbPath = path.join(__dirname, '../../db/database.db');
@@ -13,48 +11,20 @@ if (!fs.existsSync(dbDir)) {
 }
 
 // init db
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        return console.error('Erreur SQLite :', err.message);
-    }
+const db = new Database(dbPath);
+console.log('Connecté à SQLite via better-sqlite3');
 
-    console.log('Connecté à SQLite');
-});
-
-db.runAsync = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function (err) {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(this);
-            }
-        });
-    });
+// Wrappers pour conserver la compatibilité avec le code existant qui utilisait `sqlite3`
+db.runAsync = async (sql, params = []) => {
+    return db.prepare(sql).run(params);
 };
 
-db.getAsync = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(row);
-            }
-        });
-    });
+db.getAsync = async (sql, params = []) => {
+    return db.prepare(sql).get(params);
 };
 
-db.allAsync = (sql, params = []) => {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(rows);
-            }
-        });
-    });
+db.allAsync = async (sql, params = []) => {
+    return db.prepare(sql).all(params);
 };
 
 // init tables & seed
@@ -70,12 +40,30 @@ const initDb = async () => {
             )
         `);
 
+        await db.runAsync(`
+            CREATE TABLE IF NOT EXISTS server_config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL
+            )
+        `);
+
+        // Check for JWT_SECRET, generate if missing
+        let secretRow = await db.getAsync("SELECT value FROM server_config WHERE key = 'jwt_secret'");
+        if (!secretRow) {
+            const crypto = require('crypto');
+            const newSecret = crypto.randomBytes(64).toString('hex');
+            await db.runAsync("INSERT INTO server_config (key, value) VALUES ('jwt_secret', ?)", [newSecret]);
+            process.env.JWT_SECRET = newSecret;
+            console.log('Nouveau secret JWT généré et sauvegardé.');
+        } else {
+            process.env.JWT_SECRET = secretRow.value;
+        }
 
     } catch (error) {
         console.error('error initializing db', error);
     }
 };
 
-initDb();
+db.initDb = initDb;
 
 module.exports = db;

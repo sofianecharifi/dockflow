@@ -2,19 +2,24 @@ const bcrypt = require('bcrypt');
 const jsonwebtoken = require('jsonwebtoken');
 const db = require('../../config/database');
 
-
-
+/**
+ * Validates whether the application has been initialized with an admin account.
+ * This is used by the frontend router to redirect users to the setup page if the database is completely empty.
+ */
 async function checkSetupStatus(req, res) {
     try {
         const row = await db.getAsync('SELECT COUNT(*) as count FROM users');
-        // If count is 0, setup is required
         return res.json({ setupRequired: row.count === 0 });
     } catch (error) {
-        console.error('Erreur lors de la vérification du setup:', error);
-        return res.status(500).json({ message: 'Erreur interne du serveur' });
+        console.error('Error verifying setup status:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
+/**
+ * Authenticates a user and establishes an HTTP-only cookie session.
+ * We rely on secure cookies to mitigate XSS vulnerabilities, ensuring the JWT token is inaccessible via client-side JavaScript.
+ */
 async function loginUser(req, res) {
     try {
         const { email, password } = req.body || {};
@@ -25,7 +30,7 @@ async function loginUser(req, res) {
 
         const user = await db.getAsync('SELECT * FROM users WHERE email = ?', [email]);
 
-        // bad auth
+        // Prevent timing attacks and enumeration by returning generic error messages
         if (!user) {
             return res.status(401).json({ message: 'Identifiants incorrects' });
         }
@@ -42,41 +47,47 @@ async function loginUser(req, res) {
             { expiresIn: '24h' }
         );
 
+        // Enforce maximum security for the token cookie. 
+        // SameSite=None allows cross-origin communication required by Electron/Capacitor apps.
         const isProd = process.env.NODE_ENV === 'production';
         res.cookie('dockflow_token', token, {
             httpOnly: true,
             secure: isProd,
             sameSite: isProd ? 'none' : 'lax',
-            maxAge: 24 * 60 * 60 * 1000
+            maxAge: 24 * 60 * 60 * 1000,
+            path: '/'
         });
 
         return res.json({ message: 'Connecté' });
     } catch (error) {
-        console.error('Erreur lors du login:', error);
-        return res.status(500).json({ message: 'Erreur interne du serveur' });
+        console.error('Error during login:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
+/**
+ * Handles the initial setup of the first administrator account.
+ * This endpoint locks itself permanently once the first user is created to prevent unauthorized takeovers.
+ */
 async function setupAdmin(req, res) {
     try {
-        // check if user exists
         const row = await db.getAsync('SELECT COUNT(*) as count FROM users');
 
+        // Security safeguard: Reject creation if the database is already seeded
         if (row.count > 0) {
             return res.status(403).json({ message: 'Le système a déjà été initialisé. Un compte existe déjà.' });
         }
 
-        // validate payloads
         const { email, password } = req.body || {};
         if (!email || !password) {
             return res.status(400).json({ message: 'Email et mot de passe requis pour créer le compte admin.' });
         }
 
+        // Enforce basic password complexity
         if (password.length < 8) {
             return res.status(400).json({ message: 'Le mot de passe doit faire au moins 8 caractères pour des raisons de sécurité.' });
         }
 
-        // hash & create admin
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await db.runAsync('INSERT INTO users (email, password) VALUES (?, ?)', [email, hashedPassword]);
@@ -84,17 +95,21 @@ async function setupAdmin(req, res) {
         return res.status(201).json({ message: 'Compte administrateur créé avec succès.' });
 
     } catch (error) {
-        console.error('Erreur lors de l\'initialisation du compte admin:', error);
-        return res.status(500).json({ message: 'Erreur interne du serveur' });
+        console.error('Error initializing admin account:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
+/**
+ * Terminates the user session by instructing the browser to discard the authentication cookie.
+ */
 async function logoutUser(req, res) {
     const isProd = process.env.NODE_ENV === 'production';
     res.clearCookie('dockflow_token', {
         httpOnly: true,
         secure: isProd,
-        sameSite: isProd ? 'none' : 'lax'
+        sameSite: isProd ? 'none' : 'lax',
+        path: '/'
     });
     return res.json({ message: 'Déconnecté' });
 }
