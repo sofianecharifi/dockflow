@@ -1,8 +1,7 @@
 export function createContainerCard(container) {
 
     const card = document.createElement('div');
-    card.className = "bg-[#1e293b] border border-slate-700 rounded-2xl shadow-xl overflow-hidden flex flex-col transition-all hover:border-slate-500";
-
+    card.className = "bg-[#1e293b] border border-white/[0.04] rounded-2xl shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-blue-500/10 hover:border-blue-500/30 hover:-translate-y-1";
 
     const headerDiv = document.createElement('div');
     headerDiv.className = "p-5 flex-grow";
@@ -13,12 +12,10 @@ export function createContainerCard(container) {
     const titleGroup = document.createElement('div');
     titleGroup.className = "min-w-0 flex-1 pr-4";
 
-
     const title = document.createElement('h3');
     title.className = "text-lg font-bold text-white flex items-center gap-2 truncate";
     // remove slash from name
     title.textContent = container.name || "App Inconnue";
-
 
     const subtitle = document.createElement('p');
     subtitle.className = "text-sm text-slate-400 mt-1 truncate";
@@ -27,10 +24,8 @@ export function createContainerCard(container) {
     titleGroup.appendChild(title);
     titleGroup.appendChild(subtitle);
 
-
     const badgeContainer = document.createElement('span');
     badgeContainer.className = "flex h-3 w-3 relative flex-shrink-0 mt-1.5";
-
 
     const isRunning = container.state === 'running';
 
@@ -43,9 +38,8 @@ export function createContainerCard(container) {
         badgeContainer.appendChild(ping);
         badgeContainer.appendChild(dot);
     } else {
-
         const dot = document.createElement('span');
-        dot.className = "relative inline-flex rounded-full h-3 w-3 bg-red-500";
+        dot.className = "relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-red-900";
         badgeContainer.appendChild(dot);
     }
 
@@ -53,13 +47,52 @@ export function createContainerCard(container) {
     titleRow.appendChild(badgeContainer);
 
 
+    // set container id to update easily
+    card.dataset.containerId = container.id;
+    card.dataset.currentState = container.state;
+
     const statusText = document.createElement('p');
     statusText.className = `text-sm font-medium ${isRunning ? 'text-emerald-400' : 'text-red-400'}`;
     // ex: 'Up 2 hours'
     statusText.textContent = container.status || (isRunning ? 'En ligne' : 'Stoppé');
+    statusText.dataset.statStatus = container.id;
 
     headerDiv.appendChild(titleRow);
     headerDiv.appendChild(statusText);
+
+    // Stats Div
+    const statsDiv = document.createElement('div');
+    statsDiv.className = "mt-4 flex items-center justify-between bg-black/20 rounded-xl p-4";
+
+    // RAM
+    const ramDiv = document.createElement('div');
+    const ramLabel = document.createElement('p');
+    ramLabel.className = "text-xs text-slate-400 font-medium mb-1";
+    ramLabel.textContent = "RAM";
+    const ramValue = document.createElement('p');
+    ramValue.className = "text-sm font-bold text-white";
+    ramValue.textContent = isRunning ? "Chargement..." : "0 B";
+    ramValue.dataset.statRam = container.id;
+    ramDiv.appendChild(ramLabel);
+    ramDiv.appendChild(ramValue);
+
+    // Disk
+    const diskDiv = document.createElement('div');
+    diskDiv.className = "text-right";
+    const diskLabel = document.createElement('p');
+    diskLabel.className = "text-xs text-slate-400 font-medium mb-1";
+    diskLabel.textContent = "Espace Disque";
+    const diskValue = document.createElement('p');
+    diskValue.className = "text-sm font-bold text-white";
+    diskValue.textContent = "Chargement...";
+    diskValue.dataset.statDisk = container.id;
+    diskDiv.appendChild(diskLabel);
+    diskDiv.appendChild(diskValue);
+
+    statsDiv.appendChild(ramDiv);
+    statsDiv.appendChild(diskDiv);
+
+    headerDiv.appendChild(statsDiv);
 
 
     const actionsDiv = document.createElement('div');

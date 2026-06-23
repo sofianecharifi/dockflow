@@ -3,7 +3,7 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Install build tools required for native modules (sqlite3/bcrypt)
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache python3 make g++ bash
 
 # Copy package.json files
 COPY backend/package*.json ./backend/
@@ -16,6 +16,8 @@ RUN npm install --omit=dev
 FROM node:20-alpine
 
 WORKDIR /app
+
+RUN apk add --no-cache bash
 
 # Copy node_modules from builder and source files
 COPY --from=builder /app/backend/node_modules ./backend/node_modules

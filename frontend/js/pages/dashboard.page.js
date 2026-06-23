@@ -8,7 +8,7 @@ if (logoutBtn) {
             const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
             let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
             await fetch(API_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' });
-        } catch(e) {
+        } catch (e) {
             console.error('Logout error', e);
         } finally {
             window.location.href = 'login.html';
@@ -42,15 +42,22 @@ function initWebSockets() {
         let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
         socket = io(API_BASE || undefined, {
             withCredentials: true
-        }); 
+        });
 
         socket.on('system-stats', (stats) => {
             // CPU
             const cpuGauge = document.getElementById('cpu-gauge');
             const cpuText = document.getElementById('cpu-text');
+            const cpuModelEl = document.getElementById('cpu-model');
+
             if (cpuGauge && cpuText && stats.cpu !== undefined) {
                 cpuGauge.style.width = stats.cpu !== null ? `${stats.cpu}%` : '0%';
                 cpuText.textContent = stats.cpu !== null ? `${stats.cpu}%` : 'N/A';
+            }
+
+            if (cpuModelEl && stats.cpuModel) {
+                cpuModelEl.textContent = stats.cpuModel;
+                cpuModelEl.title = stats.cpuModel; // Useful for truncate
             }
 
             // RAM
@@ -58,15 +65,92 @@ function initWebSockets() {
             const ramText = document.getElementById('ram-text');
             if (ramGauge && ramText && stats.ram !== undefined) {
                 ramGauge.style.width = stats.ram !== null ? `${stats.ram}%` : '0%';
-                ramText.textContent = stats.ram !== null ? `${stats.ram}%` : 'N/A';
+                
+                let text = stats.ram !== null ? `${stats.ram}%` : 'N/A';
+                if (stats.totalRam) {
+                    const gb = (stats.totalRam / (1024 ** 3)).toFixed(1);
+                    text += ` (sur ${gb} Go)`;
+                }
+                ramText.textContent = text;
             }
 
-            // DISK
-            const diskGauge = document.getElementById('disk-gauge');
-            const diskText = document.getElementById('disk-text');
-            if (diskGauge && diskText && stats.disk !== undefined) {
-                diskGauge.style.width = stats.disk !== null ? `${stats.disk}%` : '0%';
-                diskText.textContent = stats.disk !== null ? `${stats.disk}%` : 'N/A';
+        });
+
+        function formatBytes(bytes) {
+            if (bytes === 0 || !bytes) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        socket.on('containers-stats', (containers) => {
+            const grid = document.getElementById('containers-grid');
+            if (!grid) return;
+
+            containers.forEach(container => {
+                const card = grid.querySelector(`[data-container-id="${container.id}"]`);
+                const isRunning = container.state === 'running';
+
+                if (card) {
+                    const currentState = card.dataset.currentState;
+                    if (currentState && currentState !== container.state) {
+                        const newCard = createContainerCard(container);
+                        card.replaceWith(newCard);
+                        return; // card fully replaced
+                    }
+
+                    // Update RAM
+                    const ramEl = card.querySelector(`[data-stat-ram="${container.id}"]`);
+                    if (ramEl) {
+                        ramEl.textContent = isRunning ? formatBytes(container.ramUsage) : '0 B';
+                    }
+
+                    // Update Disk
+                    const diskEl = card.querySelector(`[data-stat-disk="${container.id}"]`);
+                    if (diskEl) {
+                        diskEl.textContent = formatBytes(container.sizeRw);
+                    }
+
+                    // Update status text
+                    const statusEl = card.querySelector(`[data-stat-status="${container.id}"]`);
+                    if (statusEl) {
+                        statusEl.textContent = container.status || (isRunning ? 'En ligne' : 'Stoppé');
+                        statusEl.className = `text-sm font-medium ${isRunning ? 'text-emerald-400' : 'text-red-400'}`;
+                    }
+
+                    // Also update the badge dot color
+                    const badgeDot = card.querySelector('.relative.inline-flex.rounded-full.h-3.w-3');
+                    const badgePing = card.querySelector('.animate-ping');
+
+                    if (isRunning) {
+                        if (badgeDot) {
+                            badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
+                        }
+                        if (!badgePing) {
+                            const newPing = document.createElement('span');
+                            newPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+                            badgeDot.parentElement.insertBefore(newPing, badgeDot);
+                        }
+                    } else {
+                        if (badgeDot) {
+                            badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-red-500';
+                        }
+                        if (badgePing) {
+                            badgePing.remove();
+                        }
+                    }
+
+                }
+            });
+
+            // check if there are deleted/added containers
+            const cards = grid.querySelectorAll('[data-container-id]');
+            if (cards.length !== containers.length) {
+                // If container count changes, full re-render
+                import('../api/containers.api.js').then(module => {
+                    module.getContainers().then(renderContainersGrid);
+                });
             }
         });
 
@@ -133,9 +217,6 @@ if (gridContainer) {
             // call api
             button.disabled = true;
             await actionContainer(id, action);
-
-            // refresh dashboard
-            await initializeDashboard();
         } catch (error) {
             console.error(`Erreur lors de l'action ${action}:`, error);
             alert(error.message);

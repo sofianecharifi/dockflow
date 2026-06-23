@@ -9,19 +9,29 @@ const osUtils = createOSUtils({
     }
 });
 
+const docker = require('../../config/docker');
+
 /**
  * Retrieves the current system metrics including CPU, Memory, and Disk usage.
  * In case a specific metric fails to load, it falls back to null so the client UI 
  * can properly represent the unavailable state instead of falsely reporting 0%.
  * 
- * @returns {Promise<{cpu: number|null, ram: number|null, disk: number|null}>}
+ * @returns {Promise<{cpu: number|null, ram: number|null, disk: number|null, totalRam: number|null}>}
  */
 async function getSystemStats() {
     let cpuPercentage = null;
     let ramPercentage = null;
     let diskPercentage = null;
+    let totalRam = null;
+    let cpuModel = "Inconnu";
 
     try {
+        const os = require('os');
+        const cpus = os.cpus();
+        if (cpus && cpus.length > 0) {
+            cpuModel = cpus[0].model;
+        }
+
         const cpuResult = await osUtils.cpu.usage();
         if (cpuResult && cpuResult.success) {
             cpuPercentage = Math.round(cpuResult.data);
@@ -33,26 +43,22 @@ async function getSystemStats() {
         }
 
         try {
-            // Retrieve root OS drive statistics using cross-platform node-os-utils
-            const driveInfo = await osUtils.disk.overallUsage();
-            if (driveInfo && driveInfo.success) {
-                diskPercentage = Math.round(parseFloat(driveInfo.data));
-            }
-            if (isNaN(diskPercentage)) {
-                diskPercentage = null;
-            }
+            const dockerInfo = await docker.info();
+            totalRam = dockerInfo.MemTotal;
         } catch (e) {
-            console.error("Failed to retrieve disk statistics:", e);
+            console.error("Failed to retrieve docker info for total RAM:", e);
         }
 
         return {
             cpu: cpuPercentage,
+            cpuModel: cpuModel,
             ram: ramPercentage,
-            disk: diskPercentage
+            disk: diskPercentage,
+            totalRam: totalRam
         };
     } catch (error) {
         console.error("Failed to retrieve system statistics:", error);
-        return { cpu: null, ram: null, disk: null };
+        return { cpu: null, cpuModel: "Erreur", ram: null, disk: null, totalRam: null };
     }
 }
 

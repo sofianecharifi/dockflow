@@ -2,6 +2,7 @@ require("dotenv").config({ override: true });
 const http = require("http");
 const { Server } = require("socket.io");
 const { getSystemStats } = require("./src/modules/system/system.service");
+const { getContainersStats } = require("./src/modules/containers/containers.service");
 const containersRoutes = require("./src/modules/containers/containers.routes");
 const authRoutes = require("./src/modules/auth/auth.routes");
 const docker = require("./src/config/docker");
@@ -28,6 +29,9 @@ const broadcastStats = async () => {
         try {
             const stats = await getSystemStats();
             io.emit('system-stats', stats);
+
+            const containersData = await getContainersStats();
+            io.emit('containers-stats', containersData);
         } catch (err) {
             console.error("Erreur stats:", err);
         }

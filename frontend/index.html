@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DockFlow - Tableau de bord</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <link href="./css/output.css" rel="stylesheet">
 </head>
 
@@ -39,35 +45,32 @@
 
         <section>
             <h2 class="text-lg font-semibold text-white mb-4">Ressources du Serveur</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-center">
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="text-sm font-medium text-slate-400">Processeur (CPU)</span>
-                        <span id="cpu-text" class="text-lg font-bold text-white">Calcule...</span>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                    class="bg-[#1e293b] border border-white/[0.04] rounded-xl p-5 shadow-lg flex flex-col justify-center">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex flex-col min-w-0 pr-2">
+                            <span class="text-sm font-medium text-slate-400">Processeur (CPU)</span>
+                            <span id="cpu-model" class="text-[11px] font-mono text-slate-400/70 tracking-wide mt-1 truncate"
+                                title="Chargement...">Chargement...</span>
+                        </div>
+                        <span id="cpu-text" class="text-lg font-bold text-white flex-shrink-0 mt-0.5">Calcule...</span>
                     </div>
                     <div class="w-full bg-slate-800 rounded-full h-2.5">
                         <div id="cpu-gauge" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500 ease-out"
                             style="width: 0%"></div>
                     </div>
                 </div>
-                <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-center">
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="text-sm font-medium text-slate-400">Mémoire (RAM)</span>
-                        <span id="ram-text" class="text-lg font-bold text-white">Calcule...</span>
+                <div
+                    class="bg-[#1e293b] border border-white/[0.04] rounded-xl p-5 shadow-lg flex flex-col justify-center">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="flex flex-col min-w-0 pr-2">
+                            <span class="text-sm font-medium text-slate-400">Mémoire (RAM)</span>
+                        </div>
+                        <span id="ram-text" class="text-lg font-bold text-white flex-shrink-0 mt-0.5">Calcule...</span>
                     </div>
                     <div class="w-full bg-slate-800 rounded-full h-2.5">
                         <div id="ram-gauge" class="bg-amber-500 h-2.5 rounded-full transition-all duration-500 ease-out"
-                            style="width: 0%"></div>
-                    </div>
-                </div>
-                <div class="bg-[#1e293b] border border-slate-700 rounded-xl p-5 shadow-lg flex flex-col justify-center">
-                    <div class="flex justify-between items-end mb-2">
-                        <span class="text-sm font-medium text-slate-400">Stockage</span>
-                        <span id="disk-text" class="text-lg font-bold text-white">Calcule...</span>
-                    </div>
-                    <div class="w-full bg-slate-800 rounded-full h-2.5">
-                        <div id="disk-gauge"
-                            class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500 ease-out"
                             style="width: 0%"></div>
                     </div>
                 </div>
