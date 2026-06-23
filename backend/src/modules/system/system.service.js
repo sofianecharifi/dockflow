@@ -4,8 +4,8 @@ const { createOSUtils } = require('node-os-utils');
 // to ensure fresh metrics without overloading the host CPU.
 const osUtils = createOSUtils({
     cpu: {
-        samplingInterval: 500,
-        cacheTTL: 500
+        samplingInterval: 200,
+        cacheTTL: 200
     }
 });
 

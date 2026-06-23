@@ -128,3 +128,95 @@ export function initLogsModalEvents(getSocket) {
         }
     });
 }
+
+let currentConfirmAction = null;
+
+export function openConfirmationModal(title, text, onConfirm, requiresCheckbox = false) {
+    const modal = document.getElementById('confirmation-modal');
+    const titleEl = document.getElementById('confirmation-title');
+    const subtitleEl = document.getElementById('confirmation-subtitle');
+    const checkboxContainer = document.getElementById('confirmation-checkbox-container');
+    const checkbox = document.getElementById('confirmation-checkbox');
+    const confirmBtn = document.getElementById('confirmation-confirm-btn');
+
+    if (modal && titleEl) {
+        titleEl.textContent = title;
+        if (subtitleEl && text) {
+            subtitleEl.textContent = text;
+            subtitleEl.classList.remove('hidden');
+        } else if (subtitleEl) {
+            subtitleEl.classList.add('hidden');
+        }
+
+        // Checkbox logic
+        if (requiresCheckbox && checkboxContainer && checkbox && confirmBtn) {
+            checkboxContainer.classList.remove('hidden');
+            checkbox.checked = false;
+            confirmBtn.disabled = true;
+            
+            // Cleanup previous listeners to avoid duplicates
+            const newCheckbox = checkbox.cloneNode(true);
+            checkbox.parentNode.replaceChild(newCheckbox, checkbox);
+            
+            newCheckbox.addEventListener('change', (e) => {
+                confirmBtn.disabled = !e.target.checked;
+                // Add a small danger color indication when checked
+                if (e.target.checked) {
+                    confirmBtn.classList.add('hover:bg-red-600', 'hover:border-red-600');
+                    confirmBtn.classList.remove('hover:bg-slate-600', 'hover:border-slate-500');
+                } else {
+                    confirmBtn.classList.remove('hover:bg-red-600', 'hover:border-red-600');
+                    confirmBtn.classList.add('hover:bg-slate-600', 'hover:border-slate-500');
+                }
+            });
+        } else {
+            if (checkboxContainer) checkboxContainer.classList.add('hidden');
+            if (confirmBtn) {
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('hover:bg-red-600', 'hover:border-red-600');
+                confirmBtn.classList.add('hover:bg-slate-600', 'hover:border-slate-500');
+            }
+        }
+
+        modal.classList.remove('hidden');
+        currentConfirmAction = onConfirm;
+    }
+}
+
+export function closeConfirmationModal() {
+    const modal = document.getElementById('confirmation-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        currentConfirmAction = null;
+    }
+}
+
+export function initConfirmationModalEvents() {
+    const cancelBtn = document.getElementById('confirmation-cancel-btn');
+    const confirmBtn = document.getElementById('confirmation-confirm-btn');
+    const backdrop = document.getElementById('confirmation-backdrop');
+    const closeIcon = document.getElementById('confirmation-close-icon');
+
+    const handleClose = () => closeConfirmationModal();
+
+    if (cancelBtn) cancelBtn.addEventListener('click', handleClose);
+    if (backdrop) backdrop.addEventListener('click', handleClose);
+    if (closeIcon) closeIcon.addEventListener('click', handleClose);
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => {
+            if (currentConfirmAction) {
+                currentConfirmAction();
+            }
+            closeConfirmationModal();
+        });
+    }
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('confirmation-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                handleClose();
+            }
+        }
+    });
+}

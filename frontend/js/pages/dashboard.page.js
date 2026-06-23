@@ -192,7 +192,8 @@ function initWebSockets() {
 
 // imports
 import { getContainers, actionContainer } from '../api/containers.api.js';
-import { openLogsModal, initLogsModalEvents } from '../components/modal.js';
+import { openLogsModal, initLogsModalEvents, openConfirmationModal, initConfirmationModalEvents } from '../components/modal.js';
+import { showToast } from '../components/toast.js';
 
 // container actions
 const gridContainer = document.getElementById('containers-grid');
@@ -213,20 +214,54 @@ if (gridContainer) {
             return;
         }
 
-        try {
-            // call api
-            button.disabled = true;
-            await actionContainer(id, action);
-        } catch (error) {
-            console.error(`Erreur lors de l'action ${action}:`, error);
-            alert(error.message);
-            button.disabled = false;
+        const executeAction = async () => {
+            const originalText = button.innerHTML;
+            try {
+                // spinner for pull
+                if (action === 'pull') {
+                    button.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> En cours...`;
+                }
+
+                button.disabled = true;
+                await actionContainer(id, action);
+
+                if (action === 'pull') {
+                    showToast("L'image a été mise à jour et le conteneur recréé.");
+                } else if (action === 'start') {
+                    showToast("Conteneur démarré avec succès.");
+                } else if (action === 'stop') {
+                    showToast("Conteneur arrêté avec succès.");
+                } else if (action === 'restart') {
+                    showToast("Conteneur redémarré avec succès.");
+                } else if (action === 'remove') {
+                    showToast("Conteneur supprimé avec succès.");
+                }
+            } catch (error) {
+                console.error(`Erreur lors de l'action ${action}:`, error);
+                showToast(error.message, 'error');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        };
+
+        if (action === 'stop') {
+            openConfirmationModal("Arrêter le conteneur", "Êtes-vous sûr de vouloir arrêter ce conteneur ?", executeAction);
+        } else if (action === 'restart') {
+            openConfirmationModal("Redémarrer le conteneur", "Êtes-vous sûr de vouloir redémarrer ce conteneur ?", executeAction);
+        } else if (action === 'remove') {
+            openConfirmationModal("Supprimer l'application", "Êtes-vous sûr de vouloir supprimer définitivement cette application ? Cette action est irréversible.", executeAction, true);
+        } else if (action === 'pull') {
+            openConfirmationModal("Mettre à jour & Recréer", "Attention : Cette action va stopper, supprimer puis recréer le conteneur avec la dernière image. Assurez-vous que vos données importantes sont sauvegardées dans des volumes persistants.", executeAction, true);
+        } else {
+            executeAction();
         }
     });
 }
 
 // init modal events
 initLogsModalEvents(() => socket);
+initConfirmationModalEvents();
 
 
 async function initializeDashboard() {

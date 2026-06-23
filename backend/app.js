@@ -36,8 +36,8 @@ const broadcastStats = async () => {
             console.error("Erreur stats:", err);
         }
     }
-    // 1 sec refresh
-    setTimeout(broadcastStats, 1000);
+    // 300ms refresh for snappier UI
+    setTimeout(broadcastStats, 300);
 };
 
 // start loop
