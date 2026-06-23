@@ -1,3 +1,5 @@
+import { showToast } from './toast.js';
+
 export function closeLogsModal(socket) {
     const logsModal = document.getElementById('logs-modal');
     const logsStream = document.getElementById('logs-stream');
@@ -104,7 +106,7 @@ export function initLogsModalEvents(getSocket) {
                 window.URL.revokeObjectURL(downloadUrl);
             } catch (error) {
                 console.error(error);
-                alert("Impossible de télécharger les logs.");
+                showToast("Impossible de télécharger les logs.", "error");
             } finally {
                 // restore initial state
                 downloadLogsBtn.disabled = false;
