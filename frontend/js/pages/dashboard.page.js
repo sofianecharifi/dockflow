@@ -265,14 +265,14 @@ if (gridContainer) {
 
         if (action === 'stop') {
             const containerName = button.closest('[data-container-id]')?.dataset?.containerName;
-            if (containerName === 'dockflow') {
+            if (containerName && containerName.includes('dockflow')) {
                 openConfirmationModal("Arrêter DockFlow", "Êtes-vous sûr de vouloir arrêter ce conteneur ? Cela va couper le site et il faudra le relancer manuellement si besoin.", executeAction, true);
             } else {
                 openConfirmationModal("Arrêter le conteneur", "Êtes-vous sûr de vouloir arrêter ce conteneur ?", executeAction);
             }
         } else if (action === 'restart') {
             const containerName = button.closest('[data-container-id]')?.dataset?.containerName;
-            if (containerName === 'dockflow') {
+            if (containerName && containerName.includes('dockflow')) {
                 openConfirmationModal("Redémarrer DockFlow", "Êtes-vous sûr de vouloir redémarrer ce conteneur ? Cela va temporairement couper le site et il faudra peut-être le relancer manuellement si besoin.", executeAction, true);
             } else {
                 openConfirmationModal("Redémarrer le conteneur", "Êtes-vous sûr de vouloir redémarrer ce conteneur ?", executeAction);
