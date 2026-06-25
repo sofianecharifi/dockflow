@@ -49,6 +49,7 @@ export function createContainerCard(container) {
 
     // set container id to update easily
     card.dataset.containerId = container.id;
+    card.dataset.containerName = container.name || '';
     card.dataset.currentState = container.state;
 
     const statusText = document.createElement('p');

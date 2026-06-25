@@ -216,39 +216,67 @@ if (gridContainer) {
 
         const executeAction = async () => {
             const originalText = button.innerHTML;
+            let currentToast = null;
             try {
                 // spinner for pull
                 if (action === 'pull') {
                     button.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> En cours...`;
                 }
 
+                const card = button.closest('[data-container-id]');
+                if (card) {
+                    card.classList.add('opacity-50', 'pointer-events-none', 'grayscale', 'transition-all');
+                }
+
                 button.disabled = true;
+                
+                currentToast = showToast("Action en cours...", "info", 0);
+
                 await actionContainer(id, action);
 
                 if (action === 'pull') {
-                    showToast("L'image a été mise à jour et le conteneur recréé.");
+                    if (currentToast) currentToast.update("L'image a été mise à jour et le conteneur recréé.", "success");
                 } else if (action === 'start') {
-                    showToast("Conteneur démarré avec succès.");
+                    if (currentToast) currentToast.update("Conteneur démarré avec succès.", "success");
                 } else if (action === 'stop') {
-                    showToast("Conteneur arrêté avec succès.");
+                    if (currentToast) currentToast.update("Conteneur arrêté avec succès.", "success");
                 } else if (action === 'restart') {
-                    showToast("Conteneur redémarré avec succès.");
+                    if (currentToast) currentToast.update("Conteneur redémarré avec succès.", "success");
                 } else if (action === 'remove') {
-                    showToast("Conteneur supprimé avec succès.");
+                    if (currentToast) currentToast.update("Conteneur supprimé avec succès.", "success");
                 }
             } catch (error) {
                 console.error(`Erreur lors de l'action ${action}:`, error);
-                showToast(error.message, 'error');
+                if (currentToast) {
+                    currentToast.update(error.message || "Une erreur est survenue", 'error');
+                } else {
+                    showToast(error.message || "Une erreur est survenue", 'error');
+                }
             } finally {
                 button.disabled = false;
                 button.innerHTML = originalText;
+                
+                const card = button.closest('[data-container-id]');
+                if (card) {
+                    card.classList.remove('opacity-50', 'pointer-events-none', 'grayscale');
+                }
             }
         };
 
         if (action === 'stop') {
-            openConfirmationModal("Arrêter le conteneur", "Êtes-vous sûr de vouloir arrêter ce conteneur ?", executeAction);
+            const containerName = button.closest('[data-container-id]')?.dataset?.containerName;
+            if (containerName === 'dockflow') {
+                openConfirmationModal("Arrêter DockFlow", "Êtes-vous sûr de vouloir arrêter ce conteneur ? Cela va couper le site et il faudra le relancer manuellement si besoin.", executeAction, true);
+            } else {
+                openConfirmationModal("Arrêter le conteneur", "Êtes-vous sûr de vouloir arrêter ce conteneur ?", executeAction);
+            }
         } else if (action === 'restart') {
-            openConfirmationModal("Redémarrer le conteneur", "Êtes-vous sûr de vouloir redémarrer ce conteneur ?", executeAction);
+            const containerName = button.closest('[data-container-id]')?.dataset?.containerName;
+            if (containerName === 'dockflow') {
+                openConfirmationModal("Redémarrer DockFlow", "Êtes-vous sûr de vouloir redémarrer ce conteneur ? Cela va temporairement couper le site et il faudra peut-être le relancer manuellement si besoin.", executeAction, true);
+            } else {
+                openConfirmationModal("Redémarrer le conteneur", "Êtes-vous sûr de vouloir redémarrer ce conteneur ?", executeAction);
+            }
         } else if (action === 'remove') {
             openConfirmationModal("Supprimer l'application", "Êtes-vous sûr de vouloir supprimer définitivement cette application ? Cette action est irréversible.", executeAction, true);
         } else if (action === 'pull') {

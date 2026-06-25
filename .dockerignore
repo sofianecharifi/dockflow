@@ -5,6 +5,7 @@ frontend/node_modules
 .idea
 .vscode
 .env
+frontend/dist
 frontend/android
 frontend/ios
 frontend/www
