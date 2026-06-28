@@ -50,7 +50,7 @@ export function initLogsModalEvents(getSocket) {
             if (!containerId) return;
 
             const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-            const API_BASE = isApp ? 'https://dockflow.mycharifi.ovh' : '';
+            const API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
             const url = `${API_BASE}/api/containers/${containerId}/logs/download`;
             const token = localStorage.getItem('dockflow_token');
 
