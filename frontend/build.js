@@ -32,7 +32,7 @@ for (const file of files) {
 }
 
 // Copy necessary folders
-['css', 'js', 'dist'].forEach(folder => {
+['css', 'js'].forEach(folder => {
     copyDir(path.join(srcDir, folder), path.join(destDir, folder));
 });
 

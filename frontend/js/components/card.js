@@ -122,9 +122,7 @@ export function createContainerCard(container) {
 
     // logs btn
     const logsBtn = createBtn('Logs', 'bg-slate-700 hover:bg-slate-600 text-white', 'logs');
-    if (!isRunning) {
-        logsBtn.classList.replace('col-span-1', 'col-span-2');
-    }
+    logsBtn.classList.replace('col-span-1', 'col-span-2');
     actionsDiv.appendChild(logsBtn);
 
     // pull btn
