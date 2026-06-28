@@ -14,7 +14,6 @@ if (!fs.existsSync(dbDir)) {
 const db = new Database(dbPath);
 console.log('Connecté à SQLite via better-sqlite3');
 
-// Wrappers pour conserver la compatibilité avec le code existant qui utilisait `sqlite3`
 db.runAsync = async (sql, params = []) => {
     return db.prepare(sql).run(params);
 };
