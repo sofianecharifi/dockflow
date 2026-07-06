@@ -5,19 +5,15 @@ const requireAuth = (req, res, next) => {
     const token = req.cookies.dockflow_token;
 
     if (!token) {
-        return res.status(401).json({ message: 'Non Autorisé' });
+        return res.status(401).json({ message: 'Unauthorized' });
     }
 
     try {
-        // verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-
-        req.user = decoded; // save user id
+        req.user = decoded;
         next();
     } catch (error) {
-        // handle invalid token
-        return res.status(401).json({ message: 'Non Autorisé' });
+        return res.status(401).json({ message: 'Unauthorized' });
     }
 };
 

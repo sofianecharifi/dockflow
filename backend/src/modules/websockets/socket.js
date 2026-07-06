@@ -16,7 +16,7 @@ function initWebSockets(io) {
                 const containersData = await getContainersStats();
                 io.emit('containers-stats', containersData);
             } catch (err) {
-                console.error("Erreur stats:", err);
+                console.error("Stats error:", err);
             }
         }
         // 2000ms refresh for better server performance
@@ -26,17 +26,43 @@ function initWebSockets(io) {
     // start loop
     broadcastStats();
 
-    // ws auth middleware
+    // ws auth middleware — triple fallback for cross-origin Tauri compatibility
+    // 1. Cookie (standard browser, same-origin)
+    // 2. socket.handshake.auth.token (socket.io v3+ auth handshake — used by Tauri)
+    // 3. socket.handshake.query.token (legacy fallback)
     io.use((socket, next) => {
+        console.log('[WS] New connection attempt from:', socket.handshake.headers.origin);
+        console.log('[WS] Auth payload:', socket.handshake.auth);
+        console.log('[WS] Query string:', socket.handshake.query);
+
         try {
+            // 1. Try cookie (standard browser access)
             const cookies = cookie.parse(socket.request.headers.cookie || '');
-            const token = cookies.dockflow_token;
+            let token = cookies.dockflow_token;
+            console.log('[WS] Token from cookie:', token ? 'Present' : 'Absent');
+
+            // 2. Fallback: token passed via socket.io auth handshake (Tauri/Electron/Capacitor)
+            if (!token && socket.handshake.auth && socket.handshake.auth.token) {
+                token = socket.handshake.auth.token;
+                console.log('[WS] Token from auth handshake:', token ? 'Present' : 'Absent');
+            }
+
+            // 3. Last resort: token in query string
+            if (!token && socket.handshake.query && socket.handshake.query.token) {
+                token = socket.handshake.query.token;
+                console.log('[WS] Token from query:', token ? 'Present' : 'Absent');
+            }
+
             if (!token) {
+                console.error('[WS] Rejected: No token provided');
                 return next(new Error('Authentication error'));
             }
+
             jwt.verify(token, process.env.JWT_SECRET);
+            console.log('[WS] Token verified successfully');
             next();
         } catch (err) {
+            console.error('[WS] Rejected: Invalid token', err.message);
             next(new Error('Authentication error'));
         }
     });
@@ -87,8 +113,8 @@ function initWebSockets(io) {
                 container.modem.demuxStream(logStream, stdoutPass, stderrPass);
 
             } catch (err) {
-                console.error("Erreur de récupération des logs:", err);
-                socket.emit('container-logs', `Erreur: ${err.message}`);
+                console.error("Error retrieving logs:", err);
+                socket.emit('container-logs', `Error: ${err.message}`);
             }
         });
 

@@ -47,18 +47,19 @@ async function loginUser(req, res) {
             { expiresIn: '24h' }
         );
 
-        // Enforce maximum security for the token cookie. 
-        // SameSite=None allows cross-origin communication required by Electron/Capacitor apps.
-        const isProd = process.env.NODE_ENV === 'production';
+        // Set cookie for browser-based access (no Secure flag since backend runs on HTTP).
+        // SameSite=Lax works for same-origin browser access.
         res.cookie('dockflow_token', token, {
             httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? 'none' : 'lax',
+            secure: false,
+            sameSite: 'lax',
             maxAge: 24 * 60 * 60 * 1000,
             path: '/'
         });
 
-        return res.json({ message: 'Connecté' });
+        // Also return the token in the response body so Tauri/Electron/Capacitor apps
+        // can store it in localStorage and pass it via WebSocket auth handshake.
+        return res.json({ message: 'Connecté', token });
     } catch (error) {
         console.error('Error during login:', error);
         return res.status(500).json({ message: 'Internal Server Error' });
@@ -104,11 +105,10 @@ async function setupAdmin(req, res) {
  * Terminates the user session by instructing the browser to discard the authentication cookie.
  */
 async function logoutUser(req, res) {
-    const isProd = process.env.NODE_ENV === 'production';
     res.clearCookie('dockflow_token', {
         httpOnly: true,
-        secure: isProd,
-        sameSite: isProd ? 'none' : 'lax',
+        secure: false,
+        sameSite: 'lax',
         path: '/'
     });
     return res.json({ message: 'Déconnecté' });

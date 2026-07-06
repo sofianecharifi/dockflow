@@ -10,9 +10,9 @@ if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true });
 }
 
-// init db
+// Init db
 const db = new Database(dbPath);
-console.log('Connecté à SQLite via better-sqlite3');
+console.log('Connected to SQLite via better-sqlite3');
 
 db.runAsync = async (sql, params = []) => {
     return db.prepare(sql).run(params);
@@ -26,7 +26,7 @@ db.allAsync = async (sql, params = []) => {
     return db.prepare(sql).all(params);
 };
 
-// init tables & seed
+// Init tables and seed
 const initDb = async () => {
     try {
         await db.runAsync(`
@@ -53,13 +53,13 @@ const initDb = async () => {
             const newSecret = crypto.randomBytes(64).toString('hex');
             await db.runAsync("INSERT INTO server_config (key, value) VALUES ('jwt_secret', ?)", [newSecret]);
             process.env.JWT_SECRET = newSecret;
-            console.log('Nouveau secret JWT généré et sauvegardé.');
+            console.log('New JWT secret generated and saved.');
         } else {
             process.env.JWT_SECRET = secretRow.value;
         }
 
     } catch (error) {
-        console.error('error initializing db', error);
+        console.error('Error initializing db', error);
     }
 };
 

@@ -11,7 +11,7 @@ async function listContainers() {
             status: container.Status
         }));
     } catch (error) {
-        console.error("Erreur Docker :", error);
+        console.error("Docker error:", error);
         throw error;
     }
 }
@@ -26,7 +26,7 @@ async function startContainer(req, res) {
         if (error.statusCode === 304) {
             return res.status(304).json({ message: "Action impossible, le conteneur tourne déjà" });
         }
-        console.error("Erreur startContainer:", error);
+        console.error("startContainer error:", error);
         return res.status(500).json({ message: "Erreur lors du démarrage du conteneur", error: error.message });
     }
 }
@@ -41,7 +41,7 @@ async function stopContainer(req, res) {
         if (error.statusCode === 304) {
             return res.status(304).json({ message: "Action impossible, le conteneur est déjà arrêté" });
         }
-        console.error("Erreur stopContainer:", error);
+        console.error("stopContainer error:", error);
         return res.status(500).json({ message: "Erreur lors de l'arrêt du conteneur", error: error.message });
     }
 }
@@ -53,7 +53,7 @@ async function restartContainer(req, res) {
         await container.restart();
         return res.status(200).json({ message: "Conteneur redémarré avec succès" });
     } catch (error) {
-        console.error("Erreur restartContainer:", error);
+        console.error("restartContainer error:", error);
         return res.status(500).json({ message: "Erreur lors du redémarrage du conteneur", error: error.message });
     }
 }
@@ -68,7 +68,7 @@ async function removeContainer(req, res) {
         if (error.statusCode === 409) {
             return res.status(409).json({ message: "Action impossible, le conteneur est en cours d'exécution" });
         }
-        console.error("Erreur removeContainer:", error);
+        console.error("removeContainer error:", error);
         return res.status(500).json({ message: "Erreur lors de la suppression du conteneur", error: error.message });
     }
 }
@@ -114,7 +114,7 @@ async function pullAndRecreateContainer(req, res) {
 
         return res.status(200).json({ message: "Conteneur mis à jour et recréé avec succès" });
     } catch (error) {
-        console.error("Erreur pullAndRecreateContainer:", error);
+        console.error("pullAndRecreateContainer error:", error);
         return res.status(500).json({ message: "Erreur lors de la mise à jour du conteneur", error: error.message });
     }
 }
@@ -124,8 +124,7 @@ async function downloadContainerLogs(req, res) {
     try {
         const id = req.params.id.trim();
 
-        // On utilise directement le modem pour forcer le retour sous forme de Stream,
-        // car container.logs() de dockerode bufferise par défaut si follow=false.
+        // Force return as a stream since container.logs() buffers by default if follow=false
         const optsf = {
             path: '/containers/' + id + '/logs?stdout=1&stderr=1&timestamps=1&follow=0',
             method: 'GET',
@@ -139,7 +138,7 @@ async function downloadContainerLogs(req, res) {
 
         docker.modem.dial(optsf, (err, stream) => {
             if (err) {
-                console.error("Erreur lors de la récupération du stream:", err);
+                console.error("Error retrieving stream:", err);
                 if (!res.headersSent) {
                     return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: err.message });
                 }
@@ -151,17 +150,15 @@ async function downloadContainerLogs(req, res) {
             res.setHeader('Content-Type', 'text/plain');
             res.setHeader('Content-Disposition', `attachment; filename="container-${id}-logs.txt"`);
 
-            // Démultiplexage des flux (stdout et stderr) pour retirer les headers de 8 octets ajoutés par Docker (quand tty: false)
-            // afin d'obtenir un fichier texte propre et lisible.
+            // Demultiplex stream to remove 8-byte headers added by Docker (when tty: false)
             docker.modem.demuxStream(logStream, res, res);
 
-            // Important : demuxStream ne ferme pas la réponse HTTP automatiquement à la fin du flux.
+            // Close the HTTP response manually at the end of the stream
             logStream.on('end', () => {
                 res.end();
             });
 
-            // Nettoyage : on détruit le stream Docker si la connexion HTTP est fermée prématurément par le client,
-            // ce qui évite une fuite de mémoire ou un stream fantôme côté serveur.
+            // Clean up: destroy the Docker stream if the HTTP connection is closed prematurely
             req.on('close', () => {
                 if (logStream && !logStream.destroyed) {
                     logStream.destroy();
@@ -173,7 +170,7 @@ async function downloadContainerLogs(req, res) {
         if (logStream && !logStream.destroyed) {
             logStream.destroy();
         }
-        console.error("Erreur downloadContainerLogs:", error);
+        console.error("downloadContainerLogs error:", error);
         if (!res.headersSent) {
             return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: error.message });
         }

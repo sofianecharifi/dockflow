@@ -49,7 +49,7 @@ export function initLogsModalEvents(getSocket) {
             const containerId = downloadLogsBtn.dataset.id;
             if (!containerId) return;
 
-            const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
+            const isApp = window.Capacitor || window.__TAURI__ || (window.navigator && window.navigator.userAgent.includes('Electron'));
             const API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
             const url = `${API_BASE}/api/containers/${containerId}/logs/download`;
             const token = localStorage.getItem('dockflow_token');

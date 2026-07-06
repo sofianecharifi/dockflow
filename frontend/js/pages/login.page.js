@@ -1,4 +1,5 @@
 import { loginRequest, checkSetupStatusRequest } from '../api/auth.api.js';
+import { saveToken } from '../auth.store.js';
 
 // Check if setup is required before showing login
 async function checkSetup() {
@@ -61,9 +62,15 @@ form.addEventListener('submit', async (e) => {
     const password = passwordInput.value;
 
     try {
-        // login
-        await loginRequest(email, password);
+        // login — backend returns { message, token }
+        const data = await loginRequest(email, password);
         
+        // Store the token for WebSocket auth handshake (cross-origin in Tauri).
+        // Stored in sessionStorage (cleared on app close), NOT localStorage.
+        if (data && data.token) {
+            saveToken(data.token);
+        }
+
         emailInput.blur();
         passwordInput.blur();
         

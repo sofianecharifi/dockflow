@@ -11,24 +11,39 @@ const cors = require("cors");
 const { initWebSockets } = require("./src/modules/websockets/socket");
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
+const corsOptions = {
+    origin: (origin, callback) => {
+        callback(null, origin || true);
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+};
+
+app.use(cors(corsOptions));
 const port = process.env.PORT || 3000;
 
-// init http & ws
-const server = http.createServer(app);
-const io = new Server(server);
 
-// initialize websockets
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["*"],
+        credentials: false
+    }
+});
+
+
 initWebSockets(io);
 
-// logger
+
 app.use(morgan("dev"));
 
-// body parser
+
 app.use(express.json());
 app.use(cookieParser());
 
-// auth
+
 app.use('/api/auth', authRoutes);
 
 app.get("/", (req, res) => {
@@ -37,11 +52,11 @@ app.get("/", (req, res) => {
 
 app.use(express.static(path.join(__dirname, "../frontend"), { index: false }));
 
-// protected containers routes
+
 app.use('/api/containers', containersRoutes);
 
 
-// boot
+
 const db = require('./src/config/database');
 db.initDb().then(() => {
     server.listen(port, '0.0.0.0', () => {

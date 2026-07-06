@@ -1,22 +1,25 @@
 // check auth visually not possible with http-only, rely on api fails
 
+import { getToken, clearToken } from '../auth.store.js';
+import { createContainerCard } from '../components/card.js';
+
 // handle logout
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', async () => {
         try {
-            const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-            let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
+            const API_BASE = localStorage.getItem('dockflow_api_url') || '';
             await fetch(API_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' });
         } catch (e) {
             console.error('Logout error', e);
         } finally {
+            // Clear token from session store
+            clearToken();
             window.location.href = 'login.html';
         }
     });
 }
 
-import { createContainerCard } from '../components/card.js';
 
 function renderContainersGrid(containers) {
     const grid = document.getElementById('containers-grid');
@@ -38,10 +41,29 @@ function initWebSockets() {
     if (socket) return;
 
     if (typeof io !== 'undefined') {
-        const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
-        let API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
-        socket = io(API_BASE || undefined, {
-            withCredentials: true
+        const API_BASE = localStorage.getItem('dockflow_api_url') || '';
+
+        // Retrieve the JWT from our in-memory/session store.
+        // Passed via socket.io auth handshake — works cross-origin in Tauri.
+        // This is the only way to authenticate WebSocket when cookies can't cross
+        // the tauri:// → http:// origin boundary.
+        const token = getToken();
+        const socketOptions = {};
+        if (token) {
+            socketOptions.auth = { token };
+        }
+
+        // Always provide an explicit URL — io() with no URL would default to
+        // tauri://localhost which can't accept WebSocket connections.
+        const socketUrl = API_BASE || window.location.origin;
+        socket = io(socketUrl, socketOptions);
+
+        socket.on('connect', () => {
+            console.log('[DockFlow] WebSocket connecté ✓', socketUrl);
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('[DockFlow] Erreur WebSocket:', err.message);
         });
 
         socket.on('system-stats', (stats) => {

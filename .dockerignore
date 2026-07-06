@@ -1,11 +1,38 @@
+# Dépendances
+**/node_modules
 node_modules
 backend/node_modules
 frontend/node_modules
-.git
-.idea
-.vscode
-.env
+
+# Dossiers de compilation Tauri et Rust
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+
+# Dossiers de compilation frontend
 frontend/dist
 frontend/android
 frontend/ios
 frontend/www
+**/dist
+**/build
+
+# Fichiers et dossiers Git et IDE
+.git
+**/.git
+.github
+**/.github
+.idea
+**/.idea
+.vscode
+**/.vscode
+
+# Fichiers d'environnement
+.env
+**/.env
+.env.*
+
+# Logs
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+*.log

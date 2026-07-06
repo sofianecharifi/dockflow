@@ -1,18 +1,45 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Environment files
 .env
-node_modules
+.env.*
+*.env
+
+# Local databases and logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Personal/Temp Documentation files
 help.md
 archi_backend.md
 admin_setup_plan.txt
-.vscode
 RECAP.md
-database.db
 
-# --- IDE & Build Mobile ---
+# IDE Settings
+.vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.DS_Store
+Thumbs.db
+
+# Frontend Build & Generated files
 frontend/www/
 frontend/dist/
 dist/
+
+# Tauri/Cargo Build Output
+**/src-tauri/target/
+**/src-tauri/gen/
+
+# Mobile Builds
 *.apk
 *.aab
 *.ipa
-*.db

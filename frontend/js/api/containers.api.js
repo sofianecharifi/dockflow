@@ -1,4 +1,4 @@
-const isApp = window.Capacitor || (window.navigator && window.navigator.userAgent.includes('Electron'));
+const isApp = window.Capacitor || window.__TAURI__ || (window.navigator && window.navigator.userAgent.includes('Electron'));
 let API_BASE = '';
 if (isApp) {
     API_BASE = localStorage.getItem('dockflow_api_url');

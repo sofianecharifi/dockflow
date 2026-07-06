@@ -30,7 +30,7 @@ async function getContainersStats() {
         
         return await Promise.all(containersPromises);
     } catch (err) {
-        console.error("Erreur lors de la récupération des stats conteneurs:", err);
+        console.error("Error retrieving container stats:", err);
         return [];
     }
 }
