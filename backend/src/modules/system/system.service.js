@@ -12,16 +12,15 @@ const osUtils = createOSUtils({
 const docker = require('../../config/docker');
 
 /**
- * Retrieves the current system metrics including CPU, Memory, and Disk usage.
+ * Retrieves the current system metrics including CPU and Memory.
  * In case a specific metric fails to load, it falls back to null so the client UI 
  * can properly represent the unavailable state instead of falsely reporting 0%.
  * 
- * @returns {Promise<{cpu: number|null, ram: number|null, disk: number|null, totalRam: number|null}>}
+ * @returns {Promise<{cpu: number|null, ram: number|null, totalRam: number|null}>}
  */
 async function getSystemStats() {
     let cpuPercentage = null;
     let ramPercentage = null;
-    let diskPercentage = null;
     let totalRam = null;
     let cpuModel = "Inconnu";
 
@@ -53,12 +52,11 @@ async function getSystemStats() {
             cpu: cpuPercentage,
             cpuModel: cpuModel,
             ram: ramPercentage,
-            disk: diskPercentage,
             totalRam: totalRam
         };
     } catch (error) {
         console.error("Failed to retrieve system statistics:", error);
-        return { cpu: null, cpuModel: "Erreur", ram: null, disk: null, totalRam: null };
+        return { cpu: null, cpuModel: "Erreur", ram: null, totalRam: null };
     }
 }
 

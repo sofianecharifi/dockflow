@@ -80,7 +80,7 @@ The WebSocket server (`socket.io`) is heavily utilized for live monitoring. It e
 
 ### Global Broadcasting Loop
 The server runs a recursive loop every 500ms to broadcast system and container metrics, **only if there are active connected clients**.
-- **Event `system-stats`:** Broadcasts Host CPU, RAM, and Disk usage (gathered via `node-os-utils`).
+- **Event `system-stats`:** Broadcasts Host CPU and RAM (gathered via `node-os-utils` and `os`).
 - **Event `containers-stats`:** Broadcasts real-time metrics (CPU/RAM usage) of running containers.
 
 ### Live Container Logs Demultiplexing

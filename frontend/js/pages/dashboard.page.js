@@ -20,6 +20,29 @@ if (logoutBtn) {
     });
 }
 
+// user menu toggle
+const userMenuBtn = document.getElementById('user-menu-btn');
+const userDropdown = document.getElementById('user-dropdown');
+
+if (userMenuBtn && userDropdown) {
+    userMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('opacity-0');
+        userDropdown.classList.toggle('scale-95');
+        userDropdown.classList.toggle('pointer-events-none');
+        userDropdown.classList.toggle('opacity-100');
+        userDropdown.classList.toggle('scale-100');
+        userDropdown.classList.toggle('pointer-events-auto');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+            userDropdown.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+            userDropdown.classList.remove('opacity-100', 'scale-100', 'pointer-events-auto');
+        }
+    });
+}
+
 
 function renderContainersGrid(containers) {
     const grid = document.getElementById('containers-grid');
@@ -237,12 +260,37 @@ if (gridContainer) {
         }
 
         const executeAction = async () => {
-            const originalText = button.innerHTML;
+            const originalChildren = Array.from(button.childNodes);
             let currentToast = null;
             try {
                 // spinner for pull
                 if (action === 'pull') {
-                    button.innerHTML = `<svg class="animate-spin h-4 w-4 inline-block mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> En cours...`;
+                    button.replaceChildren();
+                    
+                    const svgNS = "http://www.w3.org/2000/svg";
+                    const svg = document.createElementNS(svgNS, "svg");
+                    svg.setAttribute("class", "animate-spin h-4 w-4 inline-block mr-1");
+                    svg.setAttribute("fill", "none");
+                    svg.setAttribute("viewBox", "0 0 24 24");
+                    
+                    const circle = document.createElementNS(svgNS, "circle");
+                    circle.setAttribute("class", "opacity-25");
+                    circle.setAttribute("cx", "12");
+                    circle.setAttribute("cy", "12");
+                    circle.setAttribute("r", "10");
+                    circle.setAttribute("stroke", "currentColor");
+                    circle.setAttribute("stroke-width", "4");
+                    
+                    const path = document.createElementNS(svgNS, "path");
+                    path.setAttribute("class", "opacity-75");
+                    path.setAttribute("fill", "currentColor");
+                    path.setAttribute("d", "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z");
+                    
+                    svg.appendChild(circle);
+                    svg.appendChild(path);
+                    
+                    button.appendChild(svg);
+                    button.appendChild(document.createTextNode(" En cours..."));
                 }
 
                 const card = button.closest('[data-container-id]');
@@ -276,7 +324,7 @@ if (gridContainer) {
                 }
             } finally {
                 button.disabled = false;
-                button.innerHTML = originalText;
+                button.replaceChildren(...originalChildren);
                 
                 const card = button.closest('[data-container-id]');
                 if (card) {

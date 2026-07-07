@@ -22,7 +22,7 @@ The user interface is designed to be responsive, fast, and easily deployable acr
 
 ## Key Features
 
-- **Resource Monitoring:** Real-time transmission of system statistics (CPU, memory, and disk usage).
+- **Resource Monitoring:** Real-time transmission of system statistics (CPU and memory).
 - **Container Management:** Start, stop, restart, and remove Docker containers directly from the user interface.
 - **Secure Log Streaming:** View live container logs through a built-in terminal interface powered by authenticated WebSockets.
 - **Secure Administrator Setup:** Dedicated initialization sequence to safely set up the root administrator upon the first launch.
