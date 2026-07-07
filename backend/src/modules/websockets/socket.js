@@ -32,8 +32,15 @@ function initWebSockets(io) {
     // 3. socket.handshake.query.token (legacy fallback)
     io.use((socket, next) => {
         console.log('[WS] New connection attempt from:', socket.handshake.headers.origin);
-        console.log('[WS] Auth payload:', socket.handshake.auth);
-        console.log('[WS] Query string:', socket.handshake.query);
+        
+        // Redact token for logging security
+        const authData = { ...socket.handshake.auth };
+        if (authData.token) authData.token = '[REDACTED]';
+        console.log('[WS] Auth payload:', authData);
+
+        const queryData = { ...socket.handshake.query };
+        if (queryData.token) queryData.token = '[REDACTED]';
+        console.log('[WS] Query string:', queryData);
 
         try {
             // 1. Try cookie (standard browser access)

@@ -1,3 +1,5 @@
+import { getToken } from '../auth.store.js';
+
 const isApp = window.Capacitor || window.__TAURI__ || (window.navigator && window.navigator.userAgent.includes('Electron'));
 let API_BASE = '';
 if (isApp) {
@@ -8,8 +10,15 @@ if (isApp) {
 }
 
 export async function getContainers() {
+    const headers = {};
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(`${API_BASE}/api/containers`, {
         method: 'GET',
+        headers,
         credentials: 'include'
     });
 
@@ -34,8 +43,15 @@ export async function actionContainer(id, action) {
     
     const url = action === 'remove' ? `${API_BASE}/api/containers/${id}` : `${API_BASE}/api/containers/${id}/${action}`;
 
+    const headers = {};
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
         method: method,
+        headers,
         credentials: 'include'
     });
 

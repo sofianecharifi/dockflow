@@ -1,4 +1,5 @@
 import { showToast } from './toast.js';
+import { getToken } from '../auth.store.js';
 
 export function closeLogsModal(socket) {
     const logsModal = document.getElementById('logs-modal');
@@ -52,7 +53,7 @@ export function initLogsModalEvents(getSocket) {
             const isApp = window.Capacitor || window.__TAURI__ || (window.navigator && window.navigator.userAgent.includes('Electron'));
             const API_BASE = isApp ? (localStorage.getItem('dockflow_api_url') || '') : '';
             const url = `${API_BASE}/api/containers/${containerId}/logs/download`;
-            const token = localStorage.getItem('dockflow_token');
+            const token = getToken();
 
             try {
                 // show loading spinner
