@@ -5,7 +5,8 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node build.js"
+    "build:css": "npx @tailwindcss/cli -i ./css/style.css -o ./css/output.css",
+    "build": "npm run build:css && node build.js"
   },
   "keywords": [],
   "author": "",

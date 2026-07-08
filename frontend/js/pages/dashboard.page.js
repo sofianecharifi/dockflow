@@ -1,7 +1,7 @@
 // check auth visually not possible with http-only, rely on api fails
 
 import { getToken, clearToken } from '../auth.store.js';
-import { createContainerCard } from '../components/card.js';
+import { createContainerCard, createEmptyStateCard, toggleCardActionLoading } from '../components/card.js';
 
 // handle logout
 const logoutBtn = document.getElementById('logout-btn');
@@ -44,15 +44,38 @@ if (userMenuBtn && userDropdown) {
 }
 
 
+let allContainers = [];
+let currentSearchTerm = '';
+let currentFilter = 'all';
+
 function renderContainersGrid(containers) {
+    allContainers = containers;
     const grid = document.getElementById('containers-grid');
     if (!grid) return;
 
-    // clear before inject
     grid.replaceChildren();
+    
+    const filteredContainers = containers.filter(container => {
+        const matchesSearch = (container.name || '').toLowerCase().includes(currentSearchTerm.toLowerCase());
+        const isRunning = container.state === 'running';
+        const matchesFilter = currentFilter === 'all' || 
+                              (currentFilter === 'running' && isRunning) || 
+                              (currentFilter === 'stopped' && !isRunning);
+        return matchesSearch && matchesFilter;
+    });
 
-    containers.forEach(container => {
+    if (filteredContainers.length === 0) {
+        grid.appendChild(createEmptyStateCard(
+            containers.length === 0 ? "Aucune application détectée" : "Aucune application ne correspond à vos critères"
+        ));
+        return;
+    }
+
+    filteredContainers.forEach((container, index) => {
         const cardElement = createContainerCard(container);
+        cardElement.classList.add('animate-slide-up');
+        cardElement.style.animationFillMode = 'both';
+        cardElement.style.animationDelay = `${index * 80}ms`;
         grid.appendChild(cardElement);
     });
 }
@@ -96,19 +119,26 @@ function initWebSockets() {
             const cpuModelEl = document.getElementById('cpu-model');
 
             if (cpuGauge && cpuText && stats.cpu !== undefined) {
+                cpuText.classList.remove('animate-pulse');
                 cpuGauge.style.width = stats.cpu !== null ? `${stats.cpu}%` : '0%';
                 cpuText.textContent = stats.cpu !== null ? `${stats.cpu}%` : 'N/A';
+                cpuGauge.className = 'h-2.5 rounded-full transition-all duration-300 ease-out ' + 
+                    (stats.cpu > 85 ? 'bg-red-500 shadow-sm shadow-red-500/50' : stats.cpu > 60 ? 'bg-amber-500 shadow-sm shadow-amber-500/50' : 'bg-blue-500 shadow-sm shadow-blue-500/50');
             }
 
             if (cpuModelEl && stats.cpuModel) {
+                cpuModelEl.classList.remove('animate-pulse');
                 cpuModelEl.textContent = stats.cpuModel;
-                cpuModelEl.title = stats.cpuModel; // Useful for truncate
+                cpuModelEl.removeAttribute('title'); // Remove native title if any
+                const tooltip = document.getElementById('cpu-model-tooltip');
+                if (tooltip) tooltip.textContent = stats.cpuModel; // Update custom tooltip
             }
 
             // RAM
             const ramGauge = document.getElementById('ram-gauge');
             const ramText = document.getElementById('ram-text');
             if (ramGauge && ramText && stats.ram !== undefined) {
+                ramText.classList.remove('animate-pulse');
                 ramGauge.style.width = stats.ram !== null ? `${stats.ram}%` : '0%';
                 
                 let text = stats.ram !== null ? `${stats.ram}%` : 'N/A';
@@ -117,6 +147,8 @@ function initWebSockets() {
                     text += ` (sur ${gb} Go)`;
                 }
                 ramText.textContent = text;
+                ramGauge.className = 'h-2.5 rounded-full transition-all duration-300 ease-out ' + 
+                    (stats.ram > 85 ? 'bg-red-500 shadow-sm shadow-red-500/50' : stats.ram > 60 ? 'bg-amber-500 shadow-sm shadow-amber-500/50' : 'bg-emerald-500 shadow-sm shadow-emerald-500/50');
             }
 
         });
@@ -148,12 +180,14 @@ function initWebSockets() {
                     // Update RAM
                     const ramEl = card.querySelector(`[data-stat-ram="${container.id}"]`);
                     if (ramEl) {
+                        ramEl.classList.remove('animate-pulse');
                         ramEl.textContent = isRunning ? formatBytes(container.ramUsage) : '0 B';
                     }
 
                     // Update Disk
                     const diskEl = card.querySelector(`[data-stat-disk="${container.id}"]`);
                     if (diskEl) {
+                        diskEl.classList.remove('animate-pulse');
                         diskEl.textContent = formatBytes(container.sizeRw);
                     }
 
@@ -189,13 +223,21 @@ function initWebSockets() {
                 }
             });
 
-            // check if there are deleted/added containers
-            const cards = grid.querySelectorAll('[data-container-id]');
-            if (cards.length !== containers.length) {
+            // check if there are deleted/added containers globally
+            if (allContainers.length !== containers.length) {
                 // If container count changes, full re-render
                 import('../api/containers.api.js').then(module => {
                     module.getContainers().then(renderContainersGrid);
                 });
+            } else {
+                // Verify if any new IDs appeared that we don't have
+                const currentIds = allContainers.map(c => c.id).sort().join(',');
+                const newIds = containers.map(c => c.id).sort().join(',');
+                if (currentIds !== newIds) {
+                    import('../api/containers.api.js').then(module => {
+                        module.getContainers().then(renderContainersGrid);
+                    });
+                }
             }
         });
 
@@ -208,13 +250,35 @@ function initWebSockets() {
                 const type = typeof data === 'string' ? 'stderr' : data.type;
 
                 const span = document.createElement('span');
-                span.textContent = text;
-
-                // color logs by type
+                
+                // color logs by type safely via textContent
                 if (type === 'stderr') {
                     span.classList.add('text-red-400');
+                    span.textContent = text;
                 } else {
                     span.classList.add('text-slate-200'); // normal text
+                    // Safe colorization
+                    const tokens = text.split(/(ERROR|WARN|WARNING|INFO)/g);
+                    tokens.forEach(token => {
+                        if (token === 'ERROR') {
+                            const errSpan = document.createElement('span');
+                            errSpan.className = 'text-red-400 font-bold';
+                            errSpan.textContent = token;
+                            span.appendChild(errSpan);
+                        } else if (token === 'WARN' || token === 'WARNING') {
+                            const warnSpan = document.createElement('span');
+                            warnSpan.className = 'text-amber-400 font-bold';
+                            warnSpan.textContent = token;
+                            span.appendChild(warnSpan);
+                        } else if (token === 'INFO') {
+                            const infoSpan = document.createElement('span');
+                            infoSpan.className = 'text-blue-400 font-bold';
+                            infoSpan.textContent = token;
+                            span.appendChild(infoSpan);
+                        } else {
+                            span.appendChild(document.createTextNode(token));
+                        }
+                    });
                 }
 
                 logsStream.appendChild(span);
@@ -225,9 +289,19 @@ function initWebSockets() {
                     logsStream.removeChild(logsStream.firstChild);
                 }
 
-                // auto scroll
+                // auto scroll handling
                 const scrollContainer = logsStream.parentElement;
-                scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                
+                // Determine if user is scrolled up
+                const isScrolledUp = scrollContainer.scrollHeight - scrollContainer.clientHeight - scrollContainer.scrollTop > 50;
+                
+                const scrollBtn = document.getElementById('logs-scroll-bottom-btn');
+                if (isScrolledUp) {
+                    if (scrollBtn) scrollBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+                } else {
+                    if (scrollBtn) scrollBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                }
             }
         });
     } else {
@@ -294,9 +368,7 @@ if (gridContainer) {
                 }
 
                 const card = button.closest('[data-container-id]');
-                if (card) {
-                    card.classList.add('opacity-50', 'pointer-events-none', 'grayscale', 'transition-all');
-                }
+                toggleCardActionLoading(card, true);
 
                 button.disabled = true;
                 
@@ -327,9 +399,7 @@ if (gridContainer) {
                 button.replaceChildren(...originalChildren);
                 
                 const card = button.closest('[data-container-id]');
-                if (card) {
-                    card.classList.remove('opacity-50', 'pointer-events-none', 'grayscale');
-                }
+                toggleCardActionLoading(card, false);
             }
         };
 
@@ -364,6 +434,52 @@ initConfirmationModalEvents();
 
 async function initializeDashboard() {
     try {
+        // Init UI events
+        const searchInput = document.getElementById('container-search-input');
+        const filterGroup = document.getElementById('filter-btn-group');
+        const scrollBtn = document.getElementById('logs-scroll-bottom-btn');
+        const logsContainer = document.getElementById('logs-scroll-container');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                currentSearchTerm = e.target.value;
+                renderContainersGrid(allContainers);
+            });
+        }
+        
+        if (filterGroup) {
+            const filterBtns = filterGroup.querySelectorAll('button');
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Update active styles
+                    filterBtns.forEach(b => {
+                        b.classList.remove('bg-slate-700', 'text-white', 'shadow-sm');
+                        b.classList.add('text-slate-400');
+                    });
+                    
+                    const clickedBtn = e.target;
+                    clickedBtn.classList.remove('text-slate-400');
+                    clickedBtn.classList.add('bg-slate-700', 'text-white', 'shadow-sm');
+                    
+                    // Apply filter
+                    currentFilter = clickedBtn.dataset.filter;
+                    renderContainersGrid(allContainers);
+                });
+            });
+        }
+
+        if (scrollBtn && logsContainer) {
+            scrollBtn.addEventListener('click', () => {
+                logsContainer.scrollTop = logsContainer.scrollHeight;
+            });
+            logsContainer.addEventListener('scroll', () => {
+                const isScrolledUp = logsContainer.scrollHeight - logsContainer.clientHeight - logsContainer.scrollTop > 50;
+                if (!isScrolledUp) {
+                    scrollBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+                }
+            });
+        }
+
         // setup ws & fetch data
         initWebSockets();
         const containers = await getContainers();

@@ -1,7 +1,7 @@
 export function createContainerCard(container) {
 
     const card = document.createElement('div');
-    card.className = "bg-[#1e293b] border border-white/[0.04] rounded-2xl shadow-xl overflow-hidden flex flex-col transition-all duration-300 hover:shadow-blue-500/10 hover:border-blue-500/30 hover:-translate-y-1";
+    card.className = "bg-[#1e293b] border border-white/[0.04] rounded-2xl shadow-lg overflow-hidden flex flex-col transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 hover:border-blue-500/30 hover:-translate-y-1";
 
     const headerDiv = document.createElement('div');
     headerDiv.className = "p-5 flex-grow";
@@ -71,7 +71,7 @@ export function createContainerCard(container) {
     ramLabel.className = "text-xs text-slate-400 font-medium mb-1";
     ramLabel.textContent = "RAM";
     const ramValue = document.createElement('p');
-    ramValue.className = "text-sm font-bold text-white";
+    ramValue.className = `text-sm font-bold text-white ${isRunning ? 'animate-pulse' : ''}`;
     ramValue.textContent = isRunning ? "Chargement..." : "0 B";
     ramValue.dataset.statRam = container.id;
     ramDiv.appendChild(ramLabel);
@@ -84,7 +84,7 @@ export function createContainerCard(container) {
     diskLabel.className = "text-xs text-slate-400 font-medium mb-1";
     diskLabel.textContent = "Espace Disque";
     const diskValue = document.createElement('p');
-    diskValue.className = "text-sm font-bold text-white";
+    diskValue.className = "text-sm font-bold text-white animate-pulse";
     diskValue.textContent = "Chargement...";
     diskValue.dataset.statDisk = container.id;
     diskDiv.appendChild(diskLabel);
@@ -102,7 +102,7 @@ export function createContainerCard(container) {
     // btn helper
     const createBtn = (text, customClasses, actionType) => {
         const btn = document.createElement('button');
-        btn.className = `col-span-1 text-xs font-medium py-2 px-3 rounded-lg flex justify-center items-center gap-1 transition-colors ${customClasses}`;
+        btn.className = `col-span-1 text-xs font-medium py-2 px-3 rounded-lg flex justify-center items-center gap-1 transition-all active:scale-95 ${customClasses}`;
         btn.textContent = text;
 
         btn.dataset.action = actionType;
@@ -127,7 +127,7 @@ export function createContainerCard(container) {
 
     // pull btn
     const pullBtn = document.createElement('button');
-    pullBtn.className = "col-span-2 mt-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-medium py-2 flex justify-center items-center gap-1 transition-colors rounded-lg";
+    pullBtn.className = "col-span-2 mt-2 bg-blue-600/20 hover:bg-blue-600/40 text-blue-400 border border-blue-500/30 text-xs font-medium py-2 flex justify-center items-center gap-1 transition-all active:scale-95 rounded-lg";
     pullBtn.textContent = "Pull l'image & Recréer";
     pullBtn.dataset.action = 'pull';
     pullBtn.dataset.id = container.id;
@@ -135,7 +135,7 @@ export function createContainerCard(container) {
 
     // delete btn
     const deleteBtn = document.createElement('button');
-    deleteBtn.className = "col-span-2 mt-1 text-red-400 hover:text-red-300 text-xs font-medium py-2 flex justify-center items-center gap-1 transition-colors";
+    deleteBtn.className = "col-span-2 mt-1 text-red-400 hover:text-red-300 text-xs font-medium py-2 flex justify-center items-center gap-1 transition-all active:scale-95 rounded-lg";
     deleteBtn.textContent = "Supprimer l'application";
     deleteBtn.dataset.action = 'remove';
     deleteBtn.dataset.id = container.id;
@@ -146,4 +146,43 @@ export function createContainerCard(container) {
 
 
     return card;
+}
+
+export function createEmptyStateCard(message = "Aucune application trouvée") {
+    const card = document.createElement('div');
+    card.className = "col-span-1 md:col-span-2 lg:col-span-3 bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl p-12 flex flex-col items-center justify-center text-center animate-slide-up";
+    
+    const svgDiv = document.createElement('div');
+    svgDiv.className = "w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-slate-700";
+    
+    // Safe hardcoded SVG
+    svgDiv.innerHTML = `<svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"></path></svg>`;
+    
+    const text = document.createElement('p');
+    text.className = "text-slate-400 font-medium";
+    text.textContent = message;
+    
+    card.appendChild(svgDiv);
+    card.appendChild(text);
+    
+    return card;
+}
+
+export function toggleCardActionLoading(cardElement, isLoading) {
+    if (!cardElement) return;
+    
+    const badgeContainer = cardElement.querySelector('.flex.h-3.w-3.relative');
+    const buttons = cardElement.querySelectorAll('button');
+    
+    if (isLoading) {
+        buttons.forEach(btn => btn.disabled = true);
+        cardElement.classList.add('opacity-75');
+        
+        if (badgeContainer) {
+            badgeContainer.innerHTML = `<svg class="animate-spin h-3 w-3 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+        }
+    } else {
+        buttons.forEach(btn => btn.disabled = false);
+        cardElement.classList.remove('opacity-75');
+    }
 }
