@@ -1,4 +1,4 @@
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ WORKDIR /app/backend
 RUN npm install --omit=dev
 
 # --- Final Image ---
-FROM node:20-alpine
+FROM node:24-alpine
 
 WORKDIR /app
 
