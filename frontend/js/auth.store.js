@@ -34,3 +34,80 @@ export function getToken() {
 export function clearToken() {
     sessionStorage.removeItem(SESSION_KEY);
 }
+
+/**
+ * Gets initials from a string (e.g. "Admin Dock" -> "AD").
+ */
+export function getInitials(name) {
+    if (!name) return "?";
+    return name.split(' ')
+               .filter(word => word.trim().length > 0)
+               .map(word => word[0].toUpperCase())
+               .join('')
+               .substring(0, 2); // max 2 initials
+}
+
+/**
+ * Fetch the authenticated user's profile.
+ */
+export async function fetchUserProfile() {
+    const API_BASE = localStorage.getItem('dockflow_api_url') || '';
+    const token = getToken();
+    const headers = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/auth/me`, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+    });
+
+    if (!res.ok) throw new Error('Erreur lors de la récupération du profil');
+    return res.json();
+}
+
+/**
+ * Update the user's profile.
+ */
+export async function updateUserProfile(username, email) {
+    const API_BASE = localStorage.getItem('dockflow_api_url') || '';
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/auth/profile`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ username, email })
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erreur lors de la mise à jour du profil');
+    }
+    return res.json();
+}
+
+/**
+ * Update the user's password.
+ */
+export async function updatePassword(currentPassword, newPassword) {
+    const API_BASE = localStorage.getItem('dockflow_api_url') || '';
+    const token = getToken();
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/api/auth/password`, {
+        method: 'PUT',
+        headers,
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword })
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erreur lors de la mise à jour du mot de passe');
+    }
+    return res.json();
+}

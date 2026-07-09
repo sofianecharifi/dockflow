@@ -1,3 +1,9 @@
+import '../theme.js';
+// Restrict this page to Tauri or Capacitor environments
+if (!window.__TAURI__ && !window.Capacitor) {
+    window.location.href = 'login.html';
+}
+
 const form = document.querySelector('form');
 const urlInput = document.getElementById('server_url');
 

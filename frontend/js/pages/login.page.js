@@ -1,3 +1,4 @@
+import '../theme.js';
 import { loginRequest, checkSetupStatusRequest } from '../api/auth.api.js';
 import { saveToken } from '../auth.store.js';
 

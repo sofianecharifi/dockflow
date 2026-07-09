@@ -114,4 +114,87 @@ async function logoutUser(req, res) {
     return res.json({ message: 'Déconnecté' });
 }
 
-module.exports = { loginUser, setupAdmin, checkSetupStatus, logoutUser };
+/**
+ * Fetches the currently authenticated user's profile.
+ */
+async function getMe(req, res) {
+    try {
+        const userId = req.user.id;
+        const user = await db.getAsync('SELECT id, email, username, role FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        return res.json(user);
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+/**
+ * Updates the user's profile information.
+ */
+async function updateProfile(req, res) {
+    try {
+        const userId = req.user.id;
+        const { username, email } = req.body || {};
+
+        if (!username || !email) {
+            return res.status(400).json({ message: 'Username and email are required.' });
+        }
+
+        // Validate basic email format
+        if (!email.includes('@')) {
+            return res.status(400).json({ message: 'Invalid email format.' });
+        }
+
+        await db.runAsync('UPDATE users SET username = ?, email = ? WHERE id = ?', [username, email, userId]);
+        
+        return res.json({ message: 'Profile updated successfully', username, email });
+    } catch (error) {
+        console.error('Error updating user profile:', error);
+        // Handle unique constraint failure for email
+        if (error.message.includes('UNIQUE constraint failed')) {
+            return res.status(409).json({ message: 'This email is already in use.' });
+        }
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+/**
+ * Updates the user's password.
+ */
+async function changePassword(req, res) {
+    try {
+        const userId = req.user.id;
+        const { currentPassword, newPassword } = req.body || {};
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "L'ancien et le nouveau mot de passe sont requis." });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: 'Le nouveau mot de passe doit faire au moins 8 caractères.' });
+        }
+
+        const user = await db.getAsync('SELECT password FROM users WHERE id = ?', [userId]);
+        if (!user) {
+            return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+        }
+
+        const isMatch = await bcrypt.compare(currentPassword, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+        await db.runAsync('UPDATE users SET password = ? WHERE id = ?', [hashedPassword, userId]);
+
+        return res.json({ message: 'Mot de passe mis à jour avec succès.' });
+    } catch (error) {
+        console.error('Error changing password:', error);
+        return res.status(500).json({ message: 'Internal Server Error' });
+    }
+}
+
+module.exports = { loginUser, setupAdmin, checkSetupStatus, logoutUser, getMe, updateProfile, changePassword };

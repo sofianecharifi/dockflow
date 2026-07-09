@@ -1,7 +1,12 @@
 // check auth visually not possible with http-only, rely on api fails
+import '../theme.js';
 
-import { getToken, clearToken } from '../auth.store.js';
+import { getToken, clearToken, fetchUserProfile, getInitials } from '../auth.store.js';
 import { createContainerCard, createEmptyStateCard, toggleCardActionLoading } from '../components/card.js';
+
+if (!getToken()) {
+    window.location.href = 'login.html';
+}
 
 // handle logout
 const logoutBtn = document.getElementById('logout-btn');
@@ -55,29 +60,62 @@ function renderContainersGrid(containers) {
 
     grid.replaceChildren();
     
-    const filteredContainers = containers.filter(container => {
-        const matchesSearch = (container.name || '').toLowerCase().includes(currentSearchTerm.toLowerCase());
-        const isRunning = container.state === 'running';
-        const matchesFilter = currentFilter === 'all' || 
-                              (currentFilter === 'running' && isRunning) || 
-                              (currentFilter === 'stopped' && !isRunning);
-        return matchesSearch && matchesFilter;
-    });
-
-    if (filteredContainers.length === 0) {
-        grid.appendChild(createEmptyStateCard(
-            containers.length === 0 ? "Aucune application détectée" : "Aucune application ne correspond à vos critères"
-        ));
-        return;
-    }
-
-    filteredContainers.forEach((container, index) => {
+    // We render ALL containers to the DOM so they receive WebSocket updates
+    allContainers.forEach((container, index) => {
         const cardElement = createContainerCard(container);
         cardElement.classList.add('animate-slide-up');
         cardElement.style.animationFillMode = 'both';
         cardElement.style.animationDelay = `${index * 80}ms`;
         grid.appendChild(cardElement);
     });
+
+    applyFilters();
+}
+
+function applyFilters() {
+    const grid = document.getElementById('containers-grid');
+    if (!grid) return;
+
+    let visibleCount = 0;
+    const cards = grid.querySelectorAll('[data-container-id]');
+
+    cards.forEach(card => {
+        const containerId = card.dataset.containerId;
+        const container = allContainers.find(c => c.id === containerId);
+        if (!container) return;
+
+        const matchesSearch = (container.name || '').toLowerCase().includes(currentSearchTerm.toLowerCase());
+        const isRunning = container.state === 'running';
+        const matchesFilter = currentFilter === 'all' || 
+                              (currentFilter === 'running' && isRunning) || 
+                              (currentFilter === 'stopped' && !isRunning);
+        
+        if (matchesSearch && matchesFilter) {
+            card.classList.remove('hidden');
+            visibleCount++;
+        } else {
+            card.classList.add('hidden');
+        }
+    });
+
+    // Handle Empty State
+    let emptyStateCard = grid.querySelector('#empty-state-card');
+    if (visibleCount === 0) {
+        const message = allContainers.length === 0 ? "Aucune application détectée" : "Aucune application ne correspond à vos critères";
+        if (!emptyStateCard) {
+            emptyStateCard = createEmptyStateCard(message);
+            emptyStateCard.id = 'empty-state-card';
+            grid.appendChild(emptyStateCard);
+        } else {
+            const p = emptyStateCard.querySelector('p');
+            if (p) p.textContent = message;
+            emptyStateCard.classList.remove('hidden');
+        }
+    } else {
+        if (emptyStateCard) {
+            emptyStateCard.classList.add('hidden');
+        }
+    }
 }
 
 let socket;
@@ -153,92 +191,8 @@ function initWebSockets() {
 
         });
 
-        function formatBytes(bytes) {
-            if (bytes === 0 || !bytes) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
         socket.on('containers-stats', (containers) => {
-            const grid = document.getElementById('containers-grid');
-            if (!grid) return;
-
-            containers.forEach(container => {
-                const card = grid.querySelector(`[data-container-id="${container.id}"]`);
-                const isRunning = container.state === 'running';
-
-                if (card) {
-                    const currentState = card.dataset.currentState;
-                    if (currentState && currentState !== container.state) {
-                        const newCard = createContainerCard(container);
-                        card.replaceWith(newCard);
-                        return; // card fully replaced
-                    }
-
-                    // Update RAM
-                    const ramEl = card.querySelector(`[data-stat-ram="${container.id}"]`);
-                    if (ramEl) {
-                        ramEl.classList.remove('animate-pulse');
-                        ramEl.textContent = isRunning ? formatBytes(container.ramUsage) : '0 B';
-                    }
-
-                    // Update Disk
-                    const diskEl = card.querySelector(`[data-stat-disk="${container.id}"]`);
-                    if (diskEl) {
-                        diskEl.classList.remove('animate-pulse');
-                        diskEl.textContent = formatBytes(container.sizeRw);
-                    }
-
-                    // Update status text
-                    const statusEl = card.querySelector(`[data-stat-status="${container.id}"]`);
-                    if (statusEl) {
-                        statusEl.textContent = container.status || (isRunning ? 'En ligne' : 'Stoppé');
-                        statusEl.className = `text-sm font-medium ${isRunning ? 'text-emerald-400' : 'text-red-400'}`;
-                    }
-
-                    // Also update the badge dot color
-                    const badgeDot = card.querySelector('.relative.inline-flex.rounded-full.h-3.w-3');
-                    const badgePing = card.querySelector('.animate-ping');
-
-                    if (isRunning) {
-                        if (badgeDot) {
-                            badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
-                        }
-                        if (!badgePing) {
-                            const newPing = document.createElement('span');
-                            newPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
-                            badgeDot.parentElement.insertBefore(newPing, badgeDot);
-                        }
-                    } else {
-                        if (badgeDot) {
-                            badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-red-500';
-                        }
-                        if (badgePing) {
-                            badgePing.remove();
-                        }
-                    }
-
-                }
-            });
-
-            // check if there are deleted/added containers globally
-            if (allContainers.length !== containers.length) {
-                // If container count changes, full re-render
-                import('../api/containers.api.js').then(module => {
-                    module.getContainers().then(renderContainersGrid);
-                });
-            } else {
-                // Verify if any new IDs appeared that we don't have
-                const currentIds = allContainers.map(c => c.id).sort().join(',');
-                const newIds = containers.map(c => c.id).sort().join(',');
-                if (currentIds !== newIds) {
-                    import('../api/containers.api.js').then(module => {
-                        module.getContainers().then(renderContainersGrid);
-                    });
-                }
-            }
+            updateContainersInPlace(containers);
         });
 
         socket.on('container-logs', (data) => {
@@ -308,6 +262,105 @@ function initWebSockets() {
         console.warn("Socket.io n'est pas encore inclus dans la page !");
     }
 }
+
+function formatBytes(bytes) {
+    if (bytes === 0 || !bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+function updateContainersInPlace(containers) {
+    const grid = document.getElementById('containers-grid');
+    if (!grid) return;
+
+    let stateChanged = false;
+
+    containers.forEach(container => {
+        const index = allContainers.findIndex(c => c.id === container.id);
+        if (index !== -1) {
+            if (allContainers[index].state !== container.state) {
+                stateChanged = true;
+            }
+            allContainers[index] = { ...allContainers[index], ...container };
+        }
+
+        const card = grid.querySelector(`[data-container-id="${container.id}"]`);
+        const isRunning = container.state === 'running';
+
+        if (card) {
+            const currentState = card.dataset.currentState;
+            if (currentState && currentState !== container.state) {
+                const newCard = createContainerCard(container);
+                card.replaceWith(newCard);
+                return; // card fully replaced
+            }
+
+            // Update RAM
+            const ramEl = card.querySelector(`[data-stat-ram="${container.id}"]`);
+            if (ramEl) {
+                ramEl.classList.remove('animate-pulse');
+                ramEl.textContent = isRunning ? formatBytes(container.ramUsage) : '0 B';
+            }
+
+            // Update Disk
+            const diskEl = card.querySelector(`[data-stat-disk="${container.id}"]`);
+            if (diskEl) {
+                diskEl.classList.remove('animate-pulse');
+                diskEl.textContent = formatBytes(container.sizeRw);
+            }
+
+            // Update status text
+            const statusEl = card.querySelector(`[data-stat-status="${container.id}"]`);
+            if (statusEl) {
+                statusEl.textContent = container.status || (isRunning ? 'En ligne' : 'Stoppé');
+                statusEl.className = `text-sm font-medium ${isRunning ? 'text-emerald-400' : 'text-red-400'}`;
+            }
+
+            // Also update the badge dot color
+            const badgeDot = card.querySelector('.relative.inline-flex.rounded-full.h-3.w-3');
+            const badgePing = card.querySelector('.animate-ping');
+
+            if (isRunning) {
+                if (badgeDot) {
+                    badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-emerald-500';
+                }
+                if (!badgePing) {
+                    const newPing = document.createElement('span');
+                    newPing.className = 'animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75';
+                    badgeDot.parentElement.insertBefore(newPing, badgeDot);
+                }
+            } else {
+                if (badgeDot) {
+                    badgeDot.className = 'relative inline-flex rounded-full h-3 w-3 bg-red-500';
+                }
+                if (badgePing) {
+                    badgePing.remove();
+                }
+            }
+        }
+    });
+
+    // check if there are deleted/added containers globally
+    if (allContainers.length !== containers.length) {
+        import('../api/containers.api.js').then(module => {
+            module.getContainers().then(renderContainersGrid);
+        });
+    } else {
+        const currentIds = allContainers.map(c => c.id).sort().join(',');
+        const newIds = containers.map(c => c.id).sort().join(',');
+        if (currentIds !== newIds) {
+            import('../api/containers.api.js').then(module => {
+                module.getContainers().then(renderContainersGrid);
+            });
+        } else if (stateChanged) {
+            applyFilters();
+        }
+    }
+}
+
+
 
 // imports
 import { getContainers, actionContainer } from '../api/containers.api.js';
@@ -387,6 +440,11 @@ if (gridContainer) {
                 } else if (action === 'remove') {
                     if (currentToast) currentToast.update("Conteneur supprimé avec succès.", "success");
                 }
+
+                // Force refresh immediately after action
+                const updatedContainers = await getContainers();
+                updateContainersInPlace(updatedContainers);
+
             } catch (error) {
                 console.error(`Erreur lors de l'action ${action}:`, error);
                 if (currentToast) {
@@ -443,7 +501,7 @@ async function initializeDashboard() {
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 currentSearchTerm = e.target.value;
-                renderContainersGrid(allContainers);
+                applyFilters();
             });
         }
         
@@ -463,7 +521,7 @@ async function initializeDashboard() {
                     
                     // Apply filter
                     currentFilter = clickedBtn.dataset.filter;
-                    renderContainersGrid(allContainers);
+                    applyFilters();
                 });
             });
         }
@@ -484,6 +542,18 @@ async function initializeDashboard() {
         initWebSockets();
         const containers = await getContainers();
         renderContainersGrid(containers);
+        
+        // Load profile for header
+        try {
+            const user = await fetchUserProfile();
+            const initials = getInitials(user.username);
+            const headerAvatar = document.getElementById('header-avatar-container');
+            if (headerAvatar) {
+                headerAvatar.innerHTML = `<span class="text-sm font-bold text-slate-300">${initials}</span>`;
+            }
+        } catch (e) {
+            console.error('Failed to load profile for header', e);
+        }
 
     } catch (error) {
         console.error("Erreur lors de l'initialisation du tableau de bord :", error);

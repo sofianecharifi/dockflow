@@ -102,7 +102,7 @@ export function createContainerCard(container) {
     // btn helper
     const createBtn = (text, customClasses, actionType) => {
         const btn = document.createElement('button');
-        btn.className = `col-span-1 text-xs font-medium py-2 px-3 rounded-lg flex justify-center items-center gap-1 transition-all active:scale-95 ${customClasses}`;
+        btn.className = `flex-1 py-2 text-xs font-medium rounded-lg transition-all active:scale-[0.98] active:opacity-80 flex items-center justify-center gap-1.5 ${customClasses}`;
         btn.textContent = text;
 
         btn.dataset.action = actionType;
@@ -111,12 +111,12 @@ export function createContainerCard(container) {
     };
 
     if (isRunning) {
-        const stopBtn = createBtn('Stopper', 'bg-slate-700 hover:bg-slate-600 text-white', 'stop');
-        const restartBtn = createBtn('Redémarrer', 'bg-slate-700 hover:bg-slate-600 text-white', 'restart');
+        const stopBtn = createBtn('Stopper', 'bg-red-500/10 text-red-400 hover:bg-red-500/20', 'stop');
+        const restartBtn = createBtn('Redémarrer', 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20', 'restart');
         actionsDiv.appendChild(stopBtn);
         actionsDiv.appendChild(restartBtn);
     } else {
-        const startBtn = createBtn('Démarrer', 'col-span-2 bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 border border-emerald-500/30', 'start');
+        const startBtn = createBtn('Démarrer', 'col-span-2 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20', 'start');
         actionsDiv.appendChild(startBtn);
     }
 

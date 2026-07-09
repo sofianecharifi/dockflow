@@ -1,4 +1,18 @@
-import { setupAdminRequest } from '../api/auth.api.js';
+import '../theme.js';
+import { setupAdminRequest, checkSetupStatusRequest } from '../api/auth.api.js';
+
+async function verifySetup() {
+    try {
+        const { setupRequired } = await checkSetupStatusRequest();
+        if (!setupRequired) {
+            document.title = "404 Not Found";
+            document.body.innerHTML = '<div style="display:flex; height:100vh; align-items:center; justify-content:center; color:white; font-family:sans-serif; background-color: #0f172a;"><h1 style="font-size: 2rem; font-weight: bold;">404 - Page Introuvable</h1></div>';
+        }
+    } catch (e) {
+        console.error("Erreur de vérification du setup:", e);
+    }
+}
+verifySetup();
 
 const form = document.querySelector('form');
 const emailInput = document.getElementById('email');
