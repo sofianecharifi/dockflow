@@ -1,188 +1,106 @@
-const docker = require("../../config/docker");
-
-async function listContainers() {
-    try {
-        const containers = await docker.listContainers({ all: true });
-        return containers.map(container => ({
-            id: container.Id,
-            name: container.Names[0]?.replace("/", ""),
-            image: container.Image,
-            state: container.State,
-            status: container.Status
-        }));
-    } catch (error) {
-        console.error("Docker error:", error);
-        throw error;
+class ContainerController {
+    constructor(containerService) {
+        this.service = containerService;
+        
+        // Bind context
+        this.listContainers = this.listContainers.bind(this);
+        this.startContainer = this.startContainer.bind(this);
+        this.stopContainer = this.stopContainer.bind(this);
+        this.restartContainer = this.restartContainer.bind(this);
+        this.removeContainer = this.removeContainer.bind(this);
+        this.pullAndRecreateContainer = this.pullAndRecreateContainer.bind(this);
+        this.downloadContainerLogs = this.downloadContainerLogs.bind(this);
     }
-}
 
-async function startContainer(req, res) {
-    try {
-        const id = req.params.id;
-        const container = docker.getContainer(id);
-        await container.start();
-        return res.status(200).json({ message: "Conteneur démarré avec succès" });
-    } catch (error) {
-        if (error.statusCode === 304) {
-            return res.status(304).json({ message: "Action impossible, le conteneur tourne déjà" });
+    async listContainers(req, res) {
+        try {
+            const containers = await this.service.listContainers();
+            res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            res.json(containers);
+        } catch (error) {
+            res.status(500).json({ error: "Erreur serveur" });
         }
-        console.error("startContainer error:", error);
-        return res.status(500).json({ message: "Erreur lors du démarrage du conteneur", error: error.message });
     }
-}
 
-async function stopContainer(req, res) {
-    try {
-        const id = req.params.id;
-        const container = docker.getContainer(id);
-        await container.stop();
-        return res.status(200).json({ message: "Conteneur arrêté avec succès" });
-    } catch (error) {
-        if (error.statusCode === 304) {
-            return res.status(304).json({ message: "Action impossible, le conteneur est déjà arrêté" });
-        }
-        console.error("stopContainer error:", error);
-        return res.status(500).json({ message: "Erreur lors de l'arrêt du conteneur", error: error.message });
-    }
-}
-
-async function restartContainer(req, res) {
-    try {
-        const id = req.params.id;
-        const container = docker.getContainer(id);
-        await container.restart();
-        return res.status(200).json({ message: "Conteneur redémarré avec succès" });
-    } catch (error) {
-        console.error("restartContainer error:", error);
-        return res.status(500).json({ message: "Erreur lors du redémarrage du conteneur", error: error.message });
-    }
-}
-
-async function removeContainer(req, res) {
-    try {
-        const id = req.params.id;
-        const container = docker.getContainer(id);
-        await container.remove();
-        return res.status(200).json({ message: "Conteneur supprimé avec succès" });
-    } catch (error) {
-        if (error.statusCode === 409) {
-            return res.status(409).json({ message: "Action impossible, le conteneur est en cours d'exécution" });
-        }
-        console.error("removeContainer error:", error);
-        return res.status(500).json({ message: "Erreur lors de la suppression du conteneur", error: error.message });
-    }
-}
-
-async function pullAndRecreateContainer(req, res) {
-    try {
-        const id = req.params.id;
-        const container = docker.getContainer(id);
-        const info = await container.inspect();
-
-        const image = info.Config.Image;
-        const name = info.Name.substring(1); // remove leading slash
-
-        // Pull new image
-        await new Promise((resolve, reject) => {
-            docker.pull(image, (err, stream) => {
-                if (err) return reject(err);
-                docker.modem.followProgress(stream, onFinished);
-                function onFinished(err, output) {
-                    if (err) return reject(err);
-                    resolve(output);
-                }
-            });
-        });
-
-        // Stop if running
-        if (info.State.Running) {
-            await container.stop();
-        }
-
-        // Remove container
-        await container.remove();
-
-        // Create new container
-        const newContainer = await docker.createContainer({
-            ...info.Config,
-            HostConfig: info.HostConfig,
-            name: name
-        });
-
-        // Start new container
-        await newContainer.start();
-
-        return res.status(200).json({ message: "Conteneur mis à jour et recréé avec succès" });
-    } catch (error) {
-        console.error("pullAndRecreateContainer error:", error);
-        return res.status(500).json({ message: "Erreur lors de la mise à jour du conteneur", error: error.message });
-    }
-}
-
-async function downloadContainerLogs(req, res) {
-    let logStream;
-    try {
-        const id = req.params.id.trim();
-
-        // Force return as a stream since container.logs() buffers by default if follow=false
-        const optsf = {
-            path: '/containers/' + id + '/logs?stdout=1&stderr=1&timestamps=1&follow=0',
-            method: 'GET',
-            isStream: true,
-            statusCodes: {
-                200: true,
-                404: 'no such container',
-                500: 'server error'
+    async startContainer(req, res) {
+        try {
+            const id = req.params.id;
+            await this.service.startContainer(id);
+            return res.status(200).json({ message: "Conteneur démarré avec succès" });
+        } catch (error) {
+            if (error.statusCode === 304) {
+                return res.status(304).json({ message: "Action impossible, le conteneur tourne déjà" });
             }
-        };
-
-        docker.modem.dial(optsf, (err, stream) => {
-            if (err) {
-                console.error("Error retrieving stream:", err);
-                if (!res.headersSent) {
-                    return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: err.message });
-                }
-                return;
-            }
-
-            logStream = stream;
-
-            res.setHeader('Content-Type', 'text/plain');
-            res.setHeader('Content-Disposition', `attachment; filename="container-${id}-logs.txt"`);
-
-            // Demultiplex stream to remove 8-byte headers added by Docker (when tty: false)
-            docker.modem.demuxStream(logStream, res, res);
-
-            // Close the HTTP response manually at the end of the stream
-            logStream.on('end', () => {
-                res.end();
-            });
-
-            // Clean up: destroy the Docker stream if the HTTP connection is closed prematurely
-            req.on('close', () => {
-                if (logStream && !logStream.destroyed) {
-                    logStream.destroy();
-                }
-            });
-        });
-
-    } catch (error) {
-        if (logStream && !logStream.destroyed) {
-            logStream.destroy();
+            console.error("startContainer error:", error);
+            return res.status(500).json({ message: "Erreur lors du démarrage du conteneur", error: error.message });
         }
-        console.error("downloadContainerLogs error:", error);
-        if (!res.headersSent) {
-            return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: error.message });
+    }
+
+    async stopContainer(req, res) {
+        try {
+            const id = req.params.id;
+            await this.service.stopContainer(id);
+            return res.status(200).json({ message: "Conteneur arrêté avec succès" });
+        } catch (error) {
+            if (error.statusCode === 304) {
+                return res.status(304).json({ message: "Action impossible, le conteneur est déjà arrêté" });
+            }
+            console.error("stopContainer error:", error);
+            return res.status(500).json({ message: "Erreur lors de l'arrêt du conteneur", error: error.message });
+        }
+    }
+
+    async restartContainer(req, res) {
+        try {
+            const id = req.params.id;
+            await this.service.restartContainer(id);
+            return res.status(200).json({ message: "Conteneur redémarré avec succès" });
+        } catch (error) {
+            console.error("restartContainer error:", error);
+            return res.status(500).json({ message: "Erreur lors du redémarrage du conteneur", error: error.message });
+        }
+    }
+
+    async removeContainer(req, res) {
+        try {
+            const id = req.params.id;
+            await this.service.removeContainer(id);
+            return res.status(200).json({ message: "Conteneur supprimé avec succès" });
+        } catch (error) {
+            if (error.statusCode === 409) {
+                return res.status(409).json({ message: "Action impossible, le conteneur est en cours d'exécution" });
+            }
+            console.error("removeContainer error:", error);
+            return res.status(500).json({ message: "Erreur lors de la suppression du conteneur", error: error.message });
+        }
+    }
+
+    async pullAndRecreateContainer(req, res) {
+        try {
+            const id = req.params.id;
+            await this.service.pullAndRecreateContainer(id);
+            return res.status(200).json({ message: "Conteneur mis à jour et recréé avec succès" });
+        } catch (error) {
+            console.error("pullAndRecreateContainer error:", error);
+            return res.status(500).json({ message: "Erreur lors de la mise à jour du conteneur", error: error.message });
+        }
+    }
+
+    async downloadContainerLogs(req, res) {
+        try {
+            const id = req.params.id.trim();
+            this.service.downloadLogs(id, req, res);
+        } catch (error) {
+            console.error("downloadContainerLogs error:", error);
+            if (!res.headersSent) {
+                return res.status(500).json({ message: "Erreur lors du téléchargement des logs", error: error.message });
+            }
         }
     }
 }
 
-module.exports = {
-    listContainers,
-    startContainer,
-    stopContainer,
-    restartContainer,
-    removeContainer,
-    pullAndRecreateContainer,
-    downloadContainerLogs
-};
+// Instantiate with the service (which is already exported as an instance)
+const containerService = require('./containers.service');
+module.exports = new ContainerController(containerService);

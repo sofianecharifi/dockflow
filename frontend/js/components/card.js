@@ -150,7 +150,7 @@ export function createContainerCard(container) {
 
 export function createEmptyStateCard(message = "Aucune application trouvée") {
     const card = document.createElement('div');
-    card.className = "col-span-1 md:col-span-2 lg:col-span-3 bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl p-12 flex flex-col items-center justify-center text-center animate-slide-up";
+    card.className = "col-span-1 md:col-span-2 lg:col-span-3 bg-[#1e293b]/50 border border-slate-700/50 rounded-2xl p-12 flex flex-col items-center justify-center text-center";
     
     const svgDiv = document.createElement('div');
     svgDiv.className = "w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4 shadow-inner border border-slate-700";

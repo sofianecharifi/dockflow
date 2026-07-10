@@ -2,7 +2,7 @@ const jwt = require("jsonwebtoken");
 const cookie = require("cookie");
 const docker = require("../../config/docker");
 const { getSystemStats } = require("../system/system.service");
-const { getContainersStats } = require("../containers/containers.service");
+const containerService = require("../containers/containers.service");
 
 function initWebSockets(io) {
     // broadcast stats loop
@@ -13,7 +13,7 @@ function initWebSockets(io) {
                 const stats = await getSystemStats();
                 io.emit('system-stats', stats);
 
-                const containersData = await getContainersStats();
+                const containersData = await containerService.getContainersStats();
                 io.emit('containers-stats', containersData);
             } catch (err) {
                 console.error("Stats error:", err);

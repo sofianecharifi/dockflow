@@ -3,6 +3,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const containersRoutes = require("./src/modules/containers/containers.routes");
 const authRoutes = require("./src/modules/auth/auth.routes");
+const usersRoutes = require("./src/modules/users/users.routes");
 const express = require("express");
 const path = require("path");
 const cookieParser = require("cookie-parser");
@@ -54,6 +55,7 @@ app.use(express.static(path.join(__dirname, "../frontend"), { index: false }));
 
 
 app.use('/api/containers', containersRoutes);
+app.use('/api/users', usersRoutes);
 
 
 

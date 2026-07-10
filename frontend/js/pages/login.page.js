@@ -2,33 +2,56 @@ import '../theme.js';
 import { loginRequest, checkSetupStatusRequest } from '../api/auth.api.js';
 import { saveToken } from '../auth.store.js';
 
-// Check if setup is required before showing login
-async function checkSetup() {
-    try {
-        const { setupRequired } = await checkSetupStatusRequest();
-        if (setupRequired) {
-            window.location.href = 'setup.html';
-        }
-    } catch (error) {
-        console.error("Erreur lors de la vérification de l'installation:", error);
+class LoginPage {
+    constructor() {
+        this.initDOM();
+        this.initEvents();
+        this.checkSetup();
     }
-}
-checkSetup();
 
-
-const form = document.querySelector('form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-
-// Toggle password visibility
-const togglePasswordBtn = document.getElementById('toggle-password');
-if (togglePasswordBtn) {
-    togglePasswordBtn.addEventListener('click', () => {
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
+    initDOM() {
+        this.form = document.querySelector('form');
+        this.emailInput = document.getElementById('email');
+        this.passwordInput = document.getElementById('password');
+        this.togglePasswordBtn = document.getElementById('toggle-password');
         
-        const eyeIcon = togglePasswordBtn.querySelector('#eye-icon');
-        const eyeOffIcon = togglePasswordBtn.querySelector('#eye-off-icon');
+        // Setup error banner
+        this.errorDiv = document.getElementById('error-message');
+        if (!this.errorDiv && this.form) {
+            this.errorDiv = document.createElement('div');
+            this.errorDiv.id = 'error-message';
+            this.errorDiv.className = 'text-red-500 text-sm font-medium mb-4 text-center hidden';
+            this.form.prepend(this.errorDiv);
+        }
+    }
+
+    initEvents() {
+        if (this.togglePasswordBtn) {
+            this.togglePasswordBtn.addEventListener('click', () => this.togglePasswordVisibility());
+        }
+
+        if (this.form) {
+            this.form.addEventListener('submit', (e) => this.handleLogin(e));
+        }
+    }
+
+    async checkSetup() {
+        try {
+            const { setupRequired } = await checkSetupStatusRequest();
+            if (setupRequired) {
+                window.location.href = 'setup.html';
+            }
+        } catch (error) {
+            console.error("Erreur lors de la vérification de l'installation:", error);
+        }
+    }
+
+    togglePasswordVisibility() {
+        const type = this.passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        this.passwordInput.setAttribute('type', type);
+        
+        const eyeIcon = this.togglePasswordBtn.querySelector('#eye-icon');
+        const eyeOffIcon = this.togglePasswordBtn.querySelector('#eye-off-icon');
         
         if (type === 'text') {
             eyeIcon.classList.add('hidden');
@@ -37,51 +60,37 @@ if (togglePasswordBtn) {
             eyeIcon.classList.remove('hidden');
             eyeOffIcon.classList.add('hidden');
         }
-    });
-}
-
-// error banner
-let errorDiv = document.getElementById('error-message');
-if (!errorDiv) {
-    errorDiv = document.createElement('div');
-    errorDiv.id = 'error-message';
-    errorDiv.className = 'text-red-500 text-sm font-medium mb-4 text-center hidden';
-    form.prepend(errorDiv);
-}
-
-
-form.addEventListener('submit', async (e) => {
-
-    e.preventDefault();
-    
-    // reset error
-    errorDiv.classList.add('hidden');
-    errorDiv.textContent = '';
-
-
-    const email = emailInput.value;
-    const password = passwordInput.value;
-
-    try {
-        // login — backend returns { message, token }
-        const data = await loginRequest(email, password);
-        
-        // Store the token for WebSocket auth handshake (cross-origin in Tauri).
-        // Stored in sessionStorage (cleared on app close), NOT localStorage.
-        if (data && data.token) {
-            saveToken(data.token);
-        }
-
-        emailInput.blur();
-        passwordInput.blur();
-        
-        // redirect
-        window.location.href = 'index.html';
-        
-    } catch (error) {
-        // catch err
-        console.error('Erreur lors de la connexion :', error);
-        errorDiv.textContent = error.message || 'Erreur de connexion. Vérifiez vos identifiants.';
-        errorDiv.classList.remove('hidden');
     }
+
+    async handleLogin(e) {
+        e.preventDefault();
+        
+        this.errorDiv.classList.add('hidden');
+        this.errorDiv.textContent = '';
+
+        const email = this.emailInput.value;
+        const password = this.passwordInput.value;
+
+        try {
+            const data = await loginRequest(email, password);
+            
+            if (data && data.token) {
+                saveToken(data.token);
+            }
+
+            this.emailInput.blur();
+            this.passwordInput.blur();
+            
+            window.location.href = 'index.html';
+            
+        } catch (error) {
+            console.error('Erreur lors de la connexion :', error);
+            this.errorDiv.textContent = error.message || 'Erreur de connexion. Vérifiez vos identifiants.';
+            this.errorDiv.classList.remove('hidden');
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    new LoginPage();
 });

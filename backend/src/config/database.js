@@ -33,20 +33,13 @@ const initDb = async () => {
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
-                username TEXT DEFAULT 'Admin',
+                username TEXT NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT DEFAULT 'user',
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         `);
-
-        // Migration for existing databases
-        try {
-            await db.runAsync("ALTER TABLE users ADD COLUMN username TEXT DEFAULT 'Admin'");
-            console.log("Migration: Added username column to users table.");
-        } catch (e) {
-            // Column likely already exists
-        }
 
         await db.runAsync(`
             CREATE TABLE IF NOT EXISTS server_config (
