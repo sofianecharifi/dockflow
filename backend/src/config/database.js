@@ -42,6 +42,17 @@ const initDb = async () => {
         `);
 
         await db.runAsync(`
+            CREATE TABLE IF NOT EXISTS refresh_tokens (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token_hash TEXT NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            )
+        `);
+
+        await db.runAsync(`
             CREATE TABLE IF NOT EXISTS server_config (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL

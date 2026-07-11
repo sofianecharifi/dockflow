@@ -2,10 +2,9 @@ const jwt = require('jsonwebtoken');
 
 const requireAuth = (req, res, next) => {
 
-    let token = req.cookies.dockflow_token;
+    let token = null;
 
-    // Fallback: Authorization header (useful for cross-origin Tauri/Electron/Capacitor apps)
-    if (!token && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
         token = req.headers.authorization.split(' ')[1];
     }
 

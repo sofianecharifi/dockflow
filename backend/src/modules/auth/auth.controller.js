@@ -10,6 +10,8 @@ class AuthController {
         this.getMe = this.getMe.bind(this);
         this.updateProfile = this.updateProfile.bind(this);
         this.changePassword = this.changePassword.bind(this);
+        this.deleteAccount = this.deleteAccount.bind(this);
+        this.refreshToken = this.refreshToken.bind(this);
     }
 
     async checkSetupStatus(req, res) {
@@ -36,15 +38,17 @@ class AuthController {
                 return res.status(401).json({ message: 'Identifiants incorrects' });
             }
 
-            res.cookie('dockflow_token', authResult.token, {
+            // Set refresh token in HttpOnly cookie
+            res.cookie('dockflow_refresh_token', authResult.refreshToken, {
                 httpOnly: true,
-                secure: false,
+                secure: false, // Set to true in production with HTTPS
                 sameSite: 'lax',
-                maxAge: 24 * 60 * 60 * 1000,
+                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
                 path: '/'
             });
 
-            return res.json({ message: 'Connecté', token: authResult.token });
+            // Return access token in JSON
+            return res.json({ message: 'Connecté', token: authResult.accessToken });
         } catch (error) {
             console.error('Error during login:', error);
             return res.status(500).json({ message: 'Internal Server Error' });
@@ -75,13 +79,52 @@ class AuthController {
         }
     }
 
+    async refreshToken(req, res) {
+        try {
+            const tokenStr = req.cookies.dockflow_refresh_token;
+            if (!tokenStr) {
+                return res.status(401).json({ message: 'Refresh token manquant' });
+            }
+
+            const authResult = await this.service.refreshToken(tokenStr);
+
+            // Set new refresh token
+            res.cookie('dockflow_refresh_token', authResult.refreshToken, {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'lax',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                path: '/'
+            });
+
+            return res.json({ token: authResult.accessToken });
+        } catch (error) {
+            console.error('Error refreshing token:', error);
+            // Clear the invalid cookie
+            res.clearCookie('dockflow_refresh_token', { path: '/' });
+            return res.status(401).json({ message: 'Session invalide ou expirée' });
+        }
+    }
+
     async logoutUser(req, res) {
-        res.clearCookie('dockflow_token', {
+        try {
+            const tokenStr = req.cookies.dockflow_refresh_token;
+            if (tokenStr) {
+                await this.service.revokeToken(tokenStr);
+            }
+        } catch (e) {
+            console.error('Error revoking token on logout:', e);
+        }
+
+        res.clearCookie('dockflow_refresh_token', {
             httpOnly: true,
             secure: false,
             sameSite: 'lax',
             path: '/'
         });
+        // Clear old cookie if it exists
+        res.clearCookie('dockflow_token', { path: '/' });
+        
         return res.json({ message: 'Déconnecté' });
     }
 
@@ -146,6 +189,43 @@ class AuthController {
                 return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
             }
             console.error('Error changing password:', error);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
+
+    async deleteAccount(req, res) {
+        try {
+            const userId = req.user.id;
+            const { password } = req.body || {};
+
+            if (!password) {
+                return res.status(400).json({ message: 'Le mot de passe est requis pour supprimer le compte.' });
+            }
+
+            await this.service.deleteAccount(userId, password);
+
+            const tokenStr = req.cookies.dockflow_refresh_token;
+            if (tokenStr) {
+                await this.service.revokeToken(tokenStr);
+            }
+
+            res.clearCookie('dockflow_refresh_token', {
+                httpOnly: true,
+                secure: false,
+                sameSite: 'lax',
+                path: '/'
+            });
+            res.clearCookie('dockflow_token', { path: '/' });
+
+            return res.json({ message: 'Compte supprimé avec succès.' });
+        } catch (error) {
+            if (error.message === 'USER_NOT_FOUND') {
+                return res.status(404).json({ message: 'Utilisateur non trouvé.' });
+            }
+            if (error.message === 'INVALID_PASSWORD') {
+                return res.status(401).json({ message: 'Le mot de passe est incorrect.' });
+            }
+            console.error('Error deleting account:', error);
             return res.status(500).json({ message: 'Internal Server Error' });
         }
     }

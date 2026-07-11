@@ -1,4 +1,5 @@
-import { getToken, clearToken, fetchUserProfile, updateUserProfile, updatePassword, getInitials } from '../auth.store.js';
+import { getToken, clearToken, fetchUserProfile, updateUserProfile, updatePassword, deleteAccount, getInitials } from '../auth.store.js';
+import { fetchWithAuth } from '../api/fetch.js';
 import { showToast } from '../components/toast.js';
 import { applyTheme } from '../theme.js';
 import { Dropdown } from '../components/UI/Dropdown.js';
@@ -82,6 +83,15 @@ class AccountPage {
             password: document.getElementById('modal-user-password'),
             passwordHint: document.getElementById('modal-password-hint')
         };
+        
+        // Delete Account DOM
+        this.deleteMyAccountBtn = document.getElementById('delete-my-account-btn');
+        this.deleteAccountModal = document.getElementById('delete-account-modal');
+        this.deleteAccountBackdrop = document.getElementById('delete-account-backdrop');
+        this.deleteAccountContent = document.getElementById('delete-account-content');
+        this.deleteAccountForm = document.getElementById('delete-account-form');
+        this.deleteAccountPasswordInput = document.getElementById('delete-account-password');
+        this.deleteAccountError = document.getElementById('delete-account-error');
     }
 
     initEvents() {
@@ -107,12 +117,23 @@ class AccountPage {
         if (this.userModalForm) {
             this.userModalForm.addEventListener('submit', (e) => this.handleUserModalSubmit(e));
         }
+
+        // Delete Account Modal
+        if (this.deleteMyAccountBtn) {
+            this.deleteMyAccountBtn.addEventListener('click', () => this.openDeleteAccountModal());
+        }
+        document.getElementById('close-delete-modal-btn')?.addEventListener('click', () => this.closeDeleteAccountModal());
+        document.getElementById('cancel-delete-modal-btn')?.addEventListener('click', () => this.closeDeleteAccountModal());
+        
+        if (this.deleteAccountForm) {
+            this.deleteAccountForm.addEventListener('submit', (e) => this.handleDeleteAccountSubmit(e));
+        }
     }
 
     async handleLogout() {
         try {
             const API_BASE = localStorage.getItem('dockflow_api_url') || '';
-            await fetch(API_BASE + '/api/auth/logout', { method: 'POST', credentials: 'include' });
+            await fetchWithAuth(API_BASE + '/api/auth/logout', { method: 'POST' });
         } catch (e) {
             console.error('Logout error', e);
         } finally {
@@ -132,6 +153,7 @@ class AccountPage {
     async loadProfile() {
         try {
             const user = await fetchUserProfile();
+            this.currentUserId = user.id;
             this.currentUserRole = user.role || 'user';
             if (this.usernameInput) this.usernameInput.value = user.username || '';
             if (this.emailInput) this.emailInput.value = user.email || '';
@@ -204,13 +226,73 @@ class AccountPage {
         }
     }
 
+    // --- Delete Own Account Methods ---
+    openDeleteAccountModal() {
+        this.deleteAccountError.classList.add('hidden');
+        this.deleteAccountForm.reset();
+        
+        this.deleteAccountModal.classList.remove('hidden');
+        this.deleteAccountModal.classList.add('flex');
+        
+        // trigger reflow
+        void this.deleteAccountModal.offsetWidth;
+        
+        this.deleteAccountBackdrop.classList.remove('opacity-0');
+        this.deleteAccountContent.classList.remove('opacity-0', 'scale-95');
+    }
+
+    closeDeleteAccountModal() {
+        this.deleteAccountBackdrop.classList.add('opacity-0');
+        this.deleteAccountContent.classList.add('opacity-0', 'scale-95');
+        setTimeout(() => {
+            this.deleteAccountModal.classList.add('hidden');
+            this.deleteAccountModal.classList.remove('flex');
+        }, 300);
+    }
+
+    async handleDeleteAccountSubmit(e) {
+        e.preventDefault();
+        this.deleteAccountError.classList.add('hidden');
+        
+        const password = this.deleteAccountPasswordInput.value;
+        if (!password) {
+            this.deleteAccountError.textContent = 'Veuillez saisir votre mot de passe.';
+            this.deleteAccountError.classList.remove('hidden');
+            return;
+        }
+
+        const submitBtn = document.getElementById('confirm-delete-account-btn');
+        const originalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Suppression...';
+
+        try {
+            await deleteAccount(password);
+            
+            this.closeDeleteAccountModal();
+            showToast('Compte supprimé avec succès.', 'success');
+            
+            // Redirect to login (like logout)
+            clearToken();
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
+
+        } catch (err) {
+            this.deleteAccountError.textContent = err.message;
+            this.deleteAccountError.classList.remove('hidden');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    }
+
     // --- Admin User Methods ---
     async loadUsers() {
         try {
             const API_BASE = localStorage.getItem('dockflow_api_url') || '';
-            const res = await fetch(API_BASE + '/api/users', { 
-                headers: { 'Authorization': `Bearer ${getToken()}` },
-                credentials: 'include' 
+            const res = await fetchWithAuth(API_BASE + '/api/users', { 
+                method: 'GET'
             });
             if (!res.ok) throw new Error('Erreur chargement utilisateurs');
             this.allUsers = await res.json();
@@ -229,8 +311,15 @@ class AccountPage {
                 ? '<span class="px-2 py-1 text-xs font-medium rounded-md bg-purple-500/10 text-purple-400 border border-purple-500/20">Admin</span>'
                 : '<span class="px-2 py-1 text-xs font-medium rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">User</span>';
             
+            const deleteButtonHtml = user.id !== this.currentUserId
+                ? `<button class="delete-user-btn text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" data-id="${user.id}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>`
+                : '';
+
+            const isCurrentUser = user.id === this.currentUserId;
             const tr = document.createElement('tr');
-            tr.className = 'hover:bg-slate-800/50 cursor-pointer transition-colors group';
+            tr.className = `transition-colors group ${isCurrentUser ? '' : 'hover:bg-slate-800/50 cursor-pointer'}`;
             tr.innerHTML = `
                 <td class="px-4 py-3 font-medium text-white flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
@@ -241,14 +330,13 @@ class AccountPage {
                 <td class="px-4 py-3 text-slate-400">${user.email}</td>
                 <td class="px-4 py-3">${roleBadge}</td>
                 <td class="px-4 py-3 text-right">
-                    <button class="delete-user-btn text-slate-500 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100" data-id="${user.id}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                    </button>
+                    ${deleteButtonHtml}
                 </td>
             `;
             
             tr.addEventListener('click', (e) => {
                 if(e.target.closest('.delete-user-btn')) return;
+                if(isCurrentUser) return;
                 this.openUserModal(user);
             });
             
@@ -320,14 +408,12 @@ class AccountPage {
             const url = id ? `${API_BASE}/api/users/${id}` : `${API_BASE}/api/users`;
             const method = id ? 'PUT' : 'POST';
 
-            const res = await fetch(url, {
+            const res = await fetchWithAuth(url, {
                 method,
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${getToken()}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(data),
-                credentials: 'include'
+                body: JSON.stringify(data)
             });
 
             const result = await res.json();
@@ -349,10 +435,8 @@ class AccountPage {
     async deleteUser(id) {
         try {
             const API_BASE = localStorage.getItem('dockflow_api_url') || '';
-            const res = await fetch(`${API_BASE}/api/users/${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${getToken()}` },
-                credentials: 'include'
+            const res = await fetchWithAuth(`${API_BASE}/api/users/${id}`, {
+                method: 'DELETE'
             });
             const result = await res.json();
             if (!res.ok) throw new Error(result.message || 'Erreur API');

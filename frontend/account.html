@@ -255,7 +255,7 @@
                         <h3 class="text-sm font-medium text-white mb-1">Supprimer le compte</h3>
                         <p class="text-xs text-slate-400 mb-4">Une fois votre compte supprimé, toutes vos données (historique, configurations) seront effacées définitivement. Vos conteneurs Docker continueront de tourner sur le serveur.</p>
                         
-                        <button class="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 active:scale-95 transition-all">
+                        <button id="delete-my-account-btn" class="px-4 py-2.5 text-sm font-medium rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 active:scale-95 transition-all">
                             Supprimer mon compte définitivement
                         </button>
                     </div>
@@ -312,6 +312,40 @@
                 <div class="pt-4 flex justify-end gap-3">
                     <button type="button" id="cancel-user-modal-btn" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Annuler</button>
                     <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-500 rounded-lg shadow-sm active:scale-95 transition-all duration-200">Sauvegarder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Account Modal -->
+    <div id="delete-account-modal" class="fixed inset-0 z-[100] hidden items-center justify-center">
+        <!-- Backdrop -->
+        <div id="delete-account-backdrop" class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm transition-opacity opacity-0"></div>
+        
+        <!-- Modal Content -->
+        <div id="delete-account-content" class="relative bg-slate-800 border border-red-500/20 shadow-2xl rounded-2xl w-full max-w-md mx-4 transform scale-95 opacity-0 transition-all duration-300">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+                <h3 class="text-lg font-semibold text-red-400">Supprimer le compte</h3>
+                <button id="close-delete-modal-btn" class="text-slate-400 hover:text-white transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <form id="delete-account-form" class="p-6 space-y-4">
+                <p class="text-sm text-slate-300 mb-4">
+                    Cette action est <span class="font-bold text-red-400">irréversible</span>. Veuillez saisir votre mot de passe pour confirmer la suppression de votre compte.
+                </p>
+
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-1.5">Mot de passe</label>
+                    <input type="password" id="delete-account-password" required class="block w-full px-3 py-2 border border-slate-700 rounded-lg bg-[#0f172a] text-slate-300 focus:ring-1 focus:ring-red-500 focus:border-red-500 sm:text-sm" placeholder="••••••••" />
+                </div>
+                
+                <div id="delete-account-error" class="hidden text-red-400 text-sm mt-2"></div>
+
+                <div class="pt-4 flex justify-end gap-3">
+                    <button type="button" id="cancel-delete-modal-btn" class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors">Annuler</button>
+                    <button type="submit" id="confirm-delete-account-btn" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-500 rounded-lg shadow-sm active:scale-95 transition-all duration-200">Supprimer définitivement</button>
                 </div>
             </form>
         </div>

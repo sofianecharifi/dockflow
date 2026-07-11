@@ -1,9 +1,14 @@
 import '../theme.js';
 import { loginRequest, checkSetupStatusRequest } from '../api/auth.api.js';
-import { saveToken } from '../auth.store.js';
+import { saveToken, getToken } from '../auth.store.js';
 
 class LoginPage {
     constructor() {
+        if (getToken()) {
+            window.location.href = 'index.html';
+            return;
+        }
+        
         this.initDOM();
         this.initEvents();
         this.checkSetup();

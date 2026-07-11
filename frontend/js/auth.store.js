@@ -1,3 +1,4 @@
+import { fetchWithAuth } from './api/fetch.js';
 /**
  * In-memory auth store — token is NEVER persisted to localStorage or sessionStorage.
  * This is intentional: keeping the JWT only in RAM eliminates XSS-based token theft.
@@ -53,13 +54,8 @@ export function getInitials(name) {
 export async function fetchUserProfile() {
     const API_BASE = localStorage.getItem('dockflow_api_url') || '';
     const token = getToken();
-    const headers = {};
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(`${API_BASE}/api/auth/me`, {
-        method: 'GET',
-        headers,
-        credentials: 'include'
+    const res = await fetchWithAuth(`${API_BASE}/api/auth/me`, {
+        method: 'GET'
     });
 
     if (!res.ok) throw new Error('Erreur lors de la récupération du profil');
@@ -71,14 +67,9 @@ export async function fetchUserProfile() {
  */
 export async function updateUserProfile(username, email) {
     const API_BASE = localStorage.getItem('dockflow_api_url') || '';
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(`${API_BASE}/api/auth/profile`, {
+    const res = await fetchWithAuth(`${API_BASE}/api/auth/profile`, {
         method: 'PUT',
-        headers,
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email })
     });
 
@@ -94,20 +85,33 @@ export async function updateUserProfile(username, email) {
  */
 export async function updatePassword(currentPassword, newPassword) {
     const API_BASE = localStorage.getItem('dockflow_api_url') || '';
-    const token = getToken();
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers['Authorization'] = `Bearer ${token}`;
-
-    const res = await fetch(`${API_BASE}/api/auth/password`, {
+    const res = await fetchWithAuth(`${API_BASE}/api/auth/password`, {
         method: 'PUT',
-        headers,
-        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ currentPassword, newPassword })
     });
 
     if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.message || 'Erreur lors de la mise à jour du mot de passe');
+    }
+    return res.json();
+}
+
+/**
+ * Delete the user's account.
+ */
+export async function deleteAccount(password) {
+    const API_BASE = localStorage.getItem('dockflow_api_url') || '';
+    const res = await fetchWithAuth(`${API_BASE}/api/auth/me`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+    });
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Erreur lors de la suppression du compte');
     }
     return res.json();
 }
