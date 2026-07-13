@@ -66,7 +66,8 @@ class DashboardPage {
 
         } catch (error) {
             console.error("Erreur lors de l'initialisation du tableau de bord :", error);
-            if (error.message === 'Session expirée' || (error.message && error.message.includes('Impossible de'))) {
+            if (error.message === 'Session expirée') {
+                clearToken();
                 window.location.href = 'login.html';
             }
         }
